@@ -609,6 +609,7 @@
         .stat-work .stat-simple-row-value { color: #10b981; }
         .stat-rest .stat-simple-row-value { color: #94a3b8; }
         .stat-leave .stat-simple-row-value { color: #ef4444; }
+        .stat-cover .stat-simple-row-value { color: #8b5cf6; }
 
         /* 请假记录窗口 */
         .leave-records-container {
@@ -1324,9 +1325,8 @@ if(s.rest.length || dayLeaves.length) {
     
     let currentYear = 2026, currentMonth = 3;
 
-    // ----------------------------- 请假和顶班数据存储 ---------------------------------
+    // ----------------------------- 请假记录存储 ---------------------------------
     let leaveRecords = [];  // 存储请假记录
-    let coverRecords = [];  // 存储顶班记录
 
     // ----------------------------- Firebase 实时同步 ---------------------------------
     // Firebase 配置
@@ -1446,10 +1446,9 @@ if(s.rest.length || dayLeaves.length) {
         const today = new Date();
         const schedule = getDailySchedule(today);
         
-        // 获取今日请假和顶班信息
+        // 获取今日请假信息
         const todayStr = formatDate(today);
         const todayLeaves = leaveRecords.filter(l => l.date === todayStr);
-        const todayCovers = coverRecords.filter(c => c.date === todayStr);
         
         // 渲染白班
         const whiteHtml = schedule.white.length > 0 
@@ -1496,9 +1495,41 @@ if(s.rest.length || dayLeaves.length) {
         }
         
         // 渲染顶班
-        if (todayCovers.length > 0) {
-            const coverHtml = todayCovers.map(c => `<span class="cover-icon">🔄${c.coverStaff}(${c.originalStaff})</span>`).join(' ');
-            document.getElementById('todayCover').innerHTML = coverHtml;
+        if (todayLeaves.length > 0) {
+            const coverHtml = todayLeaves.flatMap(l => {
+                if (!l.coverStaff || l.coverStaff.length === 0) return [];
+                return l.coverStaff.map(cover => {
+                    // 判断请假人员原本是哪个班次
+                    const originalDate = new Date(l.date);
+                    // 使用保存的原始状态来判断原班次
+                    let shiftType = '';
+                    if (l.originalVideoAssignments) {
+                        const code = l.originalVideoAssignments[l.staff];
+                        if (code === 'B') shiftType = '白';
+                        else if (code === 'N' || code === 'V') shiftType = '夜';
+                        else if (code === 'S') shiftType = '待';
+                    }
+                    // 获取顶班后实际上的班次
+                    const newSchedule = getDailySchedule(originalDate);
+                    let newShift = '';
+                    if (newSchedule.white.includes(cover)) {
+                        newShift = '白';
+                    } else if (newSchedule.night.includes(cover)) {
+                        newShift = '夜';
+                    } else if (newSchedule.standby.includes(cover)) {
+                        newShift = '待';
+                    }
+                    // 格式：伍（顶）冯 待（顶）白
+                    const shortCover = cover.substring(0, 1);
+                    const shortOriginal = l.staff.substring(0, 1);
+                    return `<span class="cover-icon">${shortCover}（顶）${shortOriginal} ${shiftType}（顶）${newShift}</span>`;
+                });
+            }).join(' ');
+            if (coverHtml) {
+                document.getElementById('todayCover').innerHTML = coverHtml;
+            } else {
+                document.getElementById('todayCover').innerHTML = '<span class="empty-state">无</span>';
+            }
         } else {
             document.getElementById('todayCover').innerHTML = '<span class="empty-state">无</span>';
         }
@@ -1726,16 +1757,6 @@ if(s.rest.length || dayLeaves.length) {
         });
         saveLeaveRecordsToFirebase();
         
-        // 添加顶班记录
-        coverStaff.forEach(cover => {
-            coverRecords.push({ 
-                date, 
-                originalStaff: staff, 
-                coverStaff: cover,
-                timestamp: new Date().toISOString() 
-            });
-        });
-        
         // 更新排班数据：将请假人员从原班次移除，添加到休息&请假
         updateScheduleOnLeave(date, staff, coverStaff);
         
@@ -1864,9 +1885,6 @@ if(s.rest.length || dayLeaves.length) {
         leaveRecords.splice(index, 1);
         saveLeaveRecordsToFirebase();
         
-        // 移除相关的顶班记录
-        coverRecords = coverRecords.filter(c => !(c.date === record.date && c.originalStaff === record.staff));
-        
         // 刷新显示
         renderLeaveRecords();
         renderTodaySchedule();
@@ -1885,7 +1903,7 @@ if(s.rest.length || dayLeaves.length) {
         const allStaff = [...videoStaff, specialStaff, ...graphicStaff];
         
         allStaff.forEach(staff => {
-            stats[staff] = { work: 0, rest: 0, leave: 0 };
+            stats[staff] = { work: 0, rest: 0, leave: 0, cover: 0 };
         });
         
         // 统计每天的排班
@@ -1903,7 +1921,7 @@ if(s.rest.length || dayLeaves.length) {
             });
         }
         
-        // 统计请假天数
+        // 统计请假天数和顶班天数
         leaveRecords.forEach(record => {
             const recordDate = new Date(record.date);
             if (recordDate.getFullYear() === currentYear && recordDate.getMonth() === currentMonth) {
@@ -1912,6 +1930,15 @@ if(s.rest.length || dayLeaves.length) {
                     if (stats[record.staff].rest > 0) {
                         stats[record.staff].rest--;
                     }
+                }
+                // 统计顶班天数
+                if (record.coverStaff && record.coverStaff.length > 0) {
+                    record.coverStaff.forEach(cover => {
+                        if (stats[cover]) {
+                            stats[cover].cover++;
+                            // 顶班的人工作天数已经在上面的循环中统计了
+                        }
+                    });
                 }
             }
         });
@@ -1935,6 +1962,10 @@ if(s.rest.length || dayLeaves.length) {
                         <div class="stat-simple-row stat-leave">
                             <span class="stat-simple-row-label">请假</span>
                             <span class="stat-simple-row-value">${s.leave}</span>
+                        </div>
+                        <div class="stat-simple-row stat-cover">
+                            <span class="stat-simple-row-label">顶班</span>
+                            <span class="stat-simple-row-value">${s.cover}</span>
                         </div>
                     </div>
                 </div>
