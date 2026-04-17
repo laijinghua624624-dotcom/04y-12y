@@ -1499,30 +1499,10 @@ if(s.rest.length || dayLeaves.length) {
             const coverHtml = todayLeaves.flatMap(l => {
                 if (!l.coverStaff || l.coverStaff.length === 0) return [];
                 return l.coverStaff.map(cover => {
-                    // 判断请假人员原本是哪个班次
-                    const originalDate = new Date(l.date);
-                    // 使用保存的原始状态来判断原班次
-                    let shiftType = '';
-                    if (l.originalVideoAssignments) {
-                        const code = l.originalVideoAssignments[l.staff];
-                        if (code === 'B') shiftType = '白';
-                        else if (code === 'N' || code === 'V') shiftType = '夜';
-                        else if (code === 'S') shiftType = '待';
-                    }
-                    // 获取顶班后实际上的班次
-                    const newSchedule = getDailySchedule(originalDate);
-                    let newShift = '';
-                    if (newSchedule.white.includes(cover)) {
-                        newShift = '白';
-                    } else if (newSchedule.night.includes(cover)) {
-                        newShift = '夜';
-                    } else if (newSchedule.standby.includes(cover)) {
-                        newShift = '待';
-                    }
-                    // 格式：伍（顶）冯 待（顶）白
+                    // 格式：伍（顶）冯
                     const shortCover = cover.substring(0, 1);
                     const shortOriginal = l.staff.substring(0, 1);
-                    return `<span class="cover-icon">${shortCover}（顶）${shortOriginal} ${shiftType}（顶）${newShift}</span>`;
+                    return `<span class="cover-icon">${shortCover}（顶）${shortOriginal}</span>`;
                 });
             }).join(' ');
             if (coverHtml) {
@@ -1843,13 +1823,24 @@ if(s.rest.length || dayLeaves.length) {
             const isVideo = videoStaff.includes(record.staff) || record.staff === specialStaff;
             const icon = isVideo ? '🎥' : '📷';
             
+            // 简化顶班显示格式
+            let coverDisplay = '';
+            if (record.coverStaff && record.coverStaff.length > 0) {
+                const shortOriginal = record.staff.substring(0, 1);
+                const coverStr = record.coverStaff.map(cover => {
+                    const shortCover = cover.substring(0, 1);
+                    return `${shortCover}（顶）${shortOriginal}`;
+                }).join('、');
+                coverDisplay = `<div class="leave-record-covers">🔄 顶班：${coverStr}</div>`;
+            }
+            
             return `
                 <div class="leave-record-item">
                     <div class="leave-record-info">
                         <div class="leave-record-date">📅 ${record.date}</div>
                         <div class="leave-record-staff">${icon} ${record.staff}</div>
                         ${record.reason ? `<div class="leave-record-reason">💬 ${record.reason}</div>` : ''}
-                        ${record.coverStaff && record.coverStaff.length > 0 ? `<div class="leave-record-covers">🔄 顶班：${record.coverStaff.join('、')}</div>` : ''}
+                        ${coverDisplay}
                     </div>
                     <div class="leave-record-actions">
                         <button class="btn-revoke" onclick="revokeLeave(${index})">撤销</button>
