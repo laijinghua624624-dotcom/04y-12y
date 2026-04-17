@@ -1,0 +1,1946 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>内容部摄影组 · 排班系统</title>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, 'Segoe UI', 'Roboto', 'Noto Sans', sans-serif;
+        }
+        body {
+            background: #eef2f7;
+            margin: 0;
+            padding: 24px 20px;
+            color: #1e2a3e;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 20px 35px -12px rgba(0,0,0,0.15);
+            overflow: hidden;
+            padding: 20px 24px 32px 24px;
+        }
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin: 0 0 4px 0;
+            background: linear-gradient(135deg, #0f2b3d, #1b4a6e);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+        .sub {
+            color: #4a627a;
+            border-left: 4px solid #3b82f6;
+            padding-left: 16px;
+            margin: 8px 0 20px 0;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        /* 员工分组样式 */
+        .staff-groups {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .staff-groups .group {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 8px 14px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid #e2e8f0;
+        }
+        .staff-groups .group h3 {
+            margin: 0;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #475569;
+            white-space: nowrap;
+        }
+        .staff-groups .group span {
+            font-size: 0.8rem;
+            color: #64748b;
+            padding: 3px 8px;
+            background: white;
+            border-radius: 12px;
+            white-space: nowrap;
+            border: 1px solid #e2e8f0;
+        }
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+            gap: 16px;
+        }
+        .month-nav {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            background: #f8fafc;
+            padding: 6px 12px;
+            border-radius: 60px;
+        }
+        .month-nav button {
+            background: white;
+            border: 1px solid #cbd5e1;
+            border-radius: 40px;
+            padding: 8px 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+        .month-nav button:hover {
+            background: #eef2ff;
+            border-color: #3b82f6;
+            color: #1e40af;
+        }
+        .current-month {
+            font-weight: 700;
+            font-size: 1.3rem;
+            background: #e6f0ff;
+            padding: 6px 20px;
+            border-radius: 40px;
+            color: #075985;
+        }
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            background: #f9f9fb;
+            padding: 10px 20px;
+            border-radius: 28px;
+            margin-bottom: 24px;
+            font-size: 0.7rem;
+            border: 1px solid #e4e9f0;
+        }
+        .legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .badge-icon {
+            display: inline-block;
+            width: 26px;
+            height: 26px;
+            border-radius: 12px;
+            text-align: center;
+            line-height: 26px;
+            font-weight: 700;
+            font-size: 0.7rem;
+            background: #e2e8f0;
+        }
+        .badge-B { background: #b9f5d8; color: #0a5c2e; } 
+        .badge-N { background: #c7d2fe; color: #1e3a8a; } 
+        .badge-S { background: #fed7aa; color: #9b4a00; } 
+        .badge-R { background: #fecaca; color: #991b1b; } 
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 20px;
+            border: 1px solid #e9edf2;
+            background: white;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            min-width: 680px;
+        }
+        th {
+            background: #f1f5f9;
+            padding: 14px 10px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            border-bottom: 2px solid #cbd5e1;
+            text-align: center;
+        }
+        td {
+            border-bottom: 1px solid #e9edf2;
+            padding: 12px 8px;
+            vertical-align: top;
+            line-height: 1.4;
+        }
+        .date-col {
+            font-weight: 700;
+            background-color: #fafcff;
+            white-space: nowrap;
+            text-align: center;
+            width: 95px;
+        }
+        .weekend-bg {
+            background-color: #fff6ea;
+        }
+        /* 今日定位框选样式 */
+        .today-highlight {
+            border: 3px solid #dc2626;
+            border-radius: 8px;
+            margin: 4px 0;
+        }
+        .today-badge {
+            background: #dc2626;
+            color: white;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            margin-left: 8px;
+        }
+        .staff-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+        .staff-tag {
+            background: #f1f3f6;
+            border-radius: 30px;
+            padding: 4px 10px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .staff-tag.video { background: #e0f2fe; color: #0369a1; border-left: 3px solid #0ea5e9; }
+        .staff-tag.photo { background: #f1e4ff; color: #6b21a5; border-left: 3px solid #a855f7; }
+        .staff-tag.rest { background: #ffe4e2; color: #b91c1c; }
+        .note-text {
+            font-size: 0.7rem;
+            color: #7e5a2c;
+            margin-top: 4px;
+        }
+        .caption-note {
+            margin-top: 24px;
+            font-size: 0.73rem;
+            background: #f1f4f9;
+            padding: 14px 20px;
+            border-radius: 20px;
+            color: #2c3e66;
+            border-left: 4px solid #3b82f6;
+        }
+        .footer-stats {
+            font-size: 0.7rem;
+            color: #4b5563;
+            margin-top: 16px;
+            text-align: right;
+        }
+        /* 今日排班卡片样式 */
+        .today-schedule {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            padding: 20px 24px;
+            margin-bottom: 24px;
+            color: white;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+        .today-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+        .today-time {
+            font-size: 1rem;
+            opacity: 0.9;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+        .today-time svg {
+            width: 20px;
+            height: 20px;
+        }
+        .today-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .today-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .today-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .today-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+        }
+        .today-item {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 12px 14px;
+            backdrop-filter: blur(10px);
+        }
+        .today-item-label {
+            font-size: 0.7rem;
+            opacity: 0.8;
+            margin-bottom: 6px;
+        }
+        .today-item-value {
+            font-size: 0.85rem;
+            font-weight: 600;
+            line-height: 1.5;
+        }
+        .video-icon { color: #7dd3fc; }
+        .photo-icon { color: #f9a8d4; }
+        .rest-icon { color: #fca5a5; }
+        .leave-icon { color: #fbbf24; }
+        .cover-icon { color: #34d399; }
+        .empty-state {
+            color: rgba(255, 255, 255, 0.5);
+            font-style: italic;
+        }
+        /* 弹窗遮罩 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-overlay.show {
+            display: flex;
+        }
+        /* 弹窗内容 */
+        .modal {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .modal-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6b7280;
+            padding: 4px 8px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+        .modal-close:hover {
+            background: #f3f4f6;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            background: #f9fafb;
+            transition: border-color 0.2s;
+        }
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            background: #f9fafb;
+            resize: vertical;
+            min-height: 80px;
+            transition: border-color 0.2s;
+        }
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .staff-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: #f9fafb;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+            font-size: 0.85rem;
+        }
+        .radio-option:hover {
+            background: #f3f4f6;
+        }
+        .radio-option input[type="radio"] {
+            width: auto;
+            margin: 0;
+            accent-color: #667eea;
+        }
+        .radio-option:has(input[type="radio"]:checked) {
+            background: #eef2ff;
+            border-color: #667eea;
+        }
+        .staff-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px;
+            background: #f9fafb;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        .staff-checkbox:hover {
+            background: #f3f4f6;
+        }
+        .staff-checkbox.selected {
+            background: #eef2ff;
+            border-color: #667eea;
+        }
+        .staff-checkbox input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+            accent-color: #667eea;
+        }
+        .staff-name {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #374151;
+        }
+        .staff-role {
+            font-size: 0.7rem;
+            color: #6b7280;
+        }
+        .recommend-tag {
+            background: #dcfce7;
+            color: #166534;
+            font-size: 0.6rem;
+            padding: 2px 6px;
+            border-radius: 8px;
+            margin-left: auto;
+        }
+        .modal-footer {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid #e5e7eb;
+        }
+        .btn-cancel {
+            flex: 1;
+            padding: 10px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            background: white;
+            color: #374151;
+            transition: all 0.2s;
+        }
+        .btn-cancel:hover {
+            background: #f9fafb;
+        }
+        .btn-submit {
+            flex: 2;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transition: all 0.2s;
+        }
+        .btn-submit:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .btn-submit:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .notification {
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 16px;
+            font-size: 0.85rem;
+        }
+        .notification.success {
+            background: #dcfce7;
+            color: #166534;
+            border-left: 4px solid #22c55e;
+        }
+        .notification.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+        }
+        .notification.warning {
+            background: #fef3c7;
+            color: #92400e;
+            border-left: 4px solid #f59e0b;
+        }
+        
+
+        /* 简单员工统计 */
+        .staff-stats-simple {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-top: 24px;
+            overflow: hidden;
+        }
+        .stats-simple-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+        }
+        .stats-simple-header h3 {
+            margin: 0;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+        #simpleStatsMonth {
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+        .stats-simple-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 10px;
+            padding: 14px;
+        }
+        .stat-simple-card {
+            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 10px 12px;
+        }
+        .stat-simple-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .stat-simple-items {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .stat-simple-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+        }
+        .stat-simple-row-label {
+            color: #64748b;
+        }
+        .stat-simple-row-value {
+            font-weight: 600;
+        }
+        .stat-work .stat-simple-row-value { color: #10b981; }
+        .stat-rest .stat-simple-row-value { color: #94a3b8; }
+        .stat-leave .stat-simple-row-value { color: #ef4444; }
+
+        /* 请假记录窗口 */
+        .leave-records-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-top: 24px;
+            overflow: hidden;
+        }
+        .leave-records-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .leave-records-header h3 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        .leave-count {
+            font-size: 0.8rem;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+        .leave-records-list {
+            padding: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .leave-record-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #f8fafc;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        .leave-record-item:hover {
+            background: #f1f5f9;
+        }
+        .leave-record-info {
+            flex: 1;
+        }
+        .leave-record-date {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 4px;
+        }
+        .leave-record-staff {
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+        .leave-record-reason {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-top: 4px;
+        }
+        .leave-record-covers {
+            font-size: 0.75rem;
+            color: #10b981;
+            margin-top: 4px;
+        }
+        .leave-record-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .btn-revoke {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            background: #fee2e2;
+            color: #dc2626;
+            transition: all 0.2s;
+        }
+        .btn-revoke:hover {
+            background: #fecaca;
+        }
+
+        /* ==================== 移动端优化 ==================== */
+        @media screen and (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .container {
+                padding: 16px;
+                border-radius: 12px;
+            }
+            h1 {
+                font-size: 1.4rem;
+            }
+            .sub {
+                font-size: 0.75rem;
+            }
+            
+            /* 员工分组移动端 */
+            .staff-groups {
+                flex-direction: column;
+                gap: 8px;
+            }
+            .staff-groups .group {
+                padding: 6px 10px;
+                flex-wrap: wrap;
+            }
+            .staff-groups .group h3 {
+                font-size: 0.8rem;
+                width: 100%;
+                margin-bottom: 4px;
+            }
+            .staff-groups .group span {
+                font-size: 0.75rem;
+                padding: 2px 6px;
+            }
+            
+            /* 工具栏移动端 */
+            .toolbar {
+                flex-direction: column;
+                gap: 12px;
+                margin-bottom: 20px;
+            }
+            .actions {
+                width: 100%;
+                justify-content: center;
+            }
+            .btn {
+                padding: 8px 14px;
+                font-size: 0.85rem;
+            }
+            
+            /* 今日排班卡片移动端 */
+            .today-schedule {
+                padding: 16px;
+                border-radius: 16px;
+            }
+            .today-header {
+                flex-direction: column;
+                gap: 12px;
+            }
+            .today-time span {
+                font-size: 0.85rem;
+            }
+            .today-title {
+                font-size: 1.1rem;
+            }
+            .today-btn {
+                width: 100%;
+                text-align: center;
+            }
+            .today-content {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            .today-item {
+                padding: 10px 12px;
+            }
+            
+            /* 表格移动端横向滚动 */
+            .table-wrapper {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                margin: 0 -16px;
+                padding: 0 16px;
+            }
+            table {
+                font-size: 0.75rem;
+                min-width: 600px;
+            }
+            th {
+                padding: 10px 6px;
+                font-size: 0.75rem;
+            }
+            td {
+                padding: 8px 6px;
+            }
+            .date-col {
+                width: 70px;
+                font-size: 0.75rem;
+            }
+            .staff-tag {
+                font-size: 0.65rem;
+                padding: 3px 6px;
+            }
+            
+            /* 请假记录移动端 */
+            .leave-records-container {
+                padding: 12px;
+            }
+            .leave-records-header {
+                flex-direction: column;
+                gap: 8px;
+                align-items: flex-start;
+            }
+            .leave-record-item {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+            .leave-record-actions {
+                width: 100%;
+                flex-direction: row;
+                justify-content: flex-end;
+            }
+            
+            /* 员工统计移动端 */
+            .stats-simple-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+                padding: 10px;
+            }
+            .stat-simple-card {
+                padding: 10px;
+            }
+            .stat-simple-name {
+                font-size: 0.85rem;
+            }
+            .stat-simple-row {
+                font-size: 0.75rem;
+            }
+            
+            /* 弹窗移动端 */
+            .modal {
+                width: 95%;
+                max-width: 95%;
+                margin: 20px auto;
+            }
+            .modal-header {
+                padding: 16px;
+            }
+            .modal-body {
+                padding: 16px;
+            }
+            .form-group input,
+            .form-group select {
+                font-size: 16px; /* 防止iOS缩放 */
+            }
+            
+            /* 月份导航移动端 */
+            .month-nav {
+                gap: 8px;
+            }
+            .month-nav button {
+                padding: 8px 12px;
+                font-size: 0.8rem;
+            }
+            .current-month {
+                font-size: 1rem;
+                min-width: 120px;
+            }
+        }
+
+        /* 超小屏幕优化 */
+        @media screen and (max-width: 480px) {
+            h1 {
+                font-size: 1.2rem;
+            }
+            .today-title {
+                font-size: 1rem;
+            }
+            .stats-simple-grid {
+                grid-template-columns: 1fr;
+            }
+            table {
+                min-width: 500px;
+            }
+            .staff-list {
+                gap: 4px;
+            }
+            .staff-tag {
+                font-size: 0.6rem;
+                padding: 2px 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🎬 摄影组排班系统</h1>
+    <div class="sub"></div>
+
+    <!-- 员工分组 -->
+    <div class="staff-groups">
+        <div class="group">
+            <h3>🎥 视频组</h3>
+            <span>赖京华</span>
+            <span>冯健材</span>
+            <span>梁元科</span>
+            <span>颜世才</span>
+            <span>伍鹏宁</span>
+            <span>资凡</span>
+        </div>
+        <div class="group">
+            <h3>📷 平面组</h3>
+            <span>钟豪昌</span>
+            <span>郑楚君</span>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <div class="month-nav">
+            <button id="prevMonthBtn">◀ 上一月</button>
+            <span class="current-month" id="currentMonthLabel">2026年4月</span>
+            <button id="nextMonthBtn">下一月 ▶</button>
+        </div>
+        <div class="actions">
+            <button id="leaveBtn" class="btn btn-primary">请假</button>
+            <button id="settingsBtn" class="btn btn-secondary">⚙️ 系统设置</button>
+        </div>
+    </div>
+
+    <!-- 今日排班卡片 -->
+    <div class="today-schedule">
+        <div class="today-header">
+            <div>
+                <div class="today-time" id="currentTime">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <span>2026/04/14  星期一  10:30:45</span>
+                </div>
+                <div class="today-title">📅 今日排班详情</div>
+            </div>
+            <button class="today-btn" onclick="openLeaveModal()">➕ 请假</button>
+        </div>
+        <div class="today-content" id="todayScheduleContent">
+            <div class="today-item">
+                <div class="today-item-label">🌞 白班</div>
+                <div class="today-item-value" id="todayWhite">
+                    <span class="empty-state">—</span>
+                </div>
+            </div>
+            <div class="today-item">
+                <div class="today-item-label">🌙 夜班</div>
+                <div class="today-item-value" id="todayNight">
+                    <span class="empty-state">—</span>
+                </div>
+            </div>
+            <div class="today-item">
+                <div class="today-item-label">⚡ 待命</div>
+                <div class="today-item-value" id="todayStandby">
+                    <span class="empty-state">—</span>
+                </div>
+            </div>
+            <div class="today-item">
+                <div class="today-item-label">😴 休息&amp;请假</div>
+                <div class="today-item-value" id="todayRest">
+                    <span class="empty-state">—</span>
+                </div>
+            </div>
+            <div class="today-item">
+                <div class="today-item-label">🏥 请假</div>
+                <div class="today-item-value" id="todayLeave">
+                    <span class="empty-state">无</span>
+                </div>
+            </div>
+            <div class="today-item">
+                <div class="today-item-label">🔄 顶班情况</div>
+                <div class="today-item-value" id="todayCover">
+                    <span class="empty-state">无</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-wrapper">
+        <table id="masterScheduleTable">
+            <thead>
+                <tr><th>日期 / 星期</th><th style="background:#ecfdf5;">白班 (12:00-20:00)</th><th style="background:#eff6ff;">夜班·值班 (18:00-02:00)</th><th style="background:#fff7ed;">待命</th><th style="background:#fef2f2;">休息&amp;请假</th></tr>
+            </thead>
+            <tbody id="scheduleBody"></tbody>
+        </table>
+    </div>
+    
+    
+    
+    <!-- 请假记录窗口 -->
+    <div class="leave-records-container">
+        <div class="leave-records-header">
+            <h3>📋 请假记录</h3>
+            <span class="leave-count">共 <span id="leaveCount">0</span> 条记录</span>
+        </div>
+        <div class="leave-records-list" id="leaveRecordsList">
+            <div class="empty-state">暂无请假记录</div>
+        </div>
+    </div>
+
+    <!-- 员工统计 -->
+    <div class="staff-stats-simple">
+        <div class="stats-simple-header">
+            <h3>📊 员工统计</h3>
+            <span id="simpleStatsMonth"></span>
+        </div>
+        <div class="stats-simple-grid" id="simpleStatsGrid"></div>
+    </div>
+</div>
+
+<!-- 请假弹窗 -->
+<div class="modal-overlay" id="leaveModal">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">📝 申请临时请假</div>
+            <button class="modal-close" onclick="closeLeaveModal()">×</button>
+        </div>
+        
+        <div id="notificationArea"></div>
+        
+        <div class="form-group">
+            <label for="leaveDate">请假日期</label>
+            <input type="date" id="leaveDate" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="leaveStaff">请假人员</label>
+            <select id="leaveStaff" required>
+                <option value="">请选择请假人员</option>
+                <optgroup label="视频组">
+                    <option value="赖京华">🎥 赖京华</option>
+                    <option value="冯健材">🎥 冯健材</option>
+                    <option value="梁元科">🎥 梁元科</option>
+                    <option value="颜世才">🎥 颜世才</option>
+                    <option value="伍鹏宁">🎥 伍鹏宁</option>
+                    <option value="资凡">🎥 资凡</option>
+                </optgroup>
+                <optgroup label="平面组">
+                    <option value="钟豪昌">📷 钟豪昌</option>
+                    <option value="郑楚君">📷 郑楚君</option>
+                </optgroup>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="leaveReason">请假原因</label>
+            <textarea id="leaveReason" placeholder="请输入请假原因..."></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label>顶班方式</label>
+            <div style="display: flex; gap: 12px;">
+                <label class="radio-option">
+                    <input type="radio" name="coverMode" value="auto" checked>
+                    <span>🔄 系统自动分配</span>
+                </label>
+                <label class="radio-option">
+                    <input type="radio" name="coverMode" value="custom">
+                    <span>✏️ 自定义选择</span>
+                </label>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>顶班人员（可多选）</label>
+            <div class="staff-grid" id="coverStaffGrid"></div>
+        </div>
+        
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeLeaveModal()">取消</button>
+            <button class="btn-submit" onclick="submitLeaveRequest()" id="submitLeaveBtn">确定请假</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ----------------------------- 视频组配置 ---------------------------------
+    const videoStaff = ["赖京华", "冯健材", "梁元科", "颜世才", "伍鹏宁"];
+    const specialStaff = "资凡";
+    
+    function buildVideoCycle() {
+        const allVideo = [...videoStaff, specialStaff];
+        const rawPattern = [
+            {type:"常规", assign:["S","N","N","B","R","N"]}, {type:"常规", assign:["N","S","R","N","B","N"]},
+            {type:"常规", assign:["R","N","B","S","N","N"]}, {type:"常规", assign:["N","B","N","R","S","N"]},
+            {type:"值班", assign:["V","R","R","V","R","V"]}, {type:"值班", assign:["R","V","V","R","R","V"]},
+            {type:"常规", assign:["B","R","S","N","N","N"]}, {type:"常规", assign:["N","B","N","S","R","N"]},
+            {type:"常规", assign:["S","N","R","B","N","N"]}, {type:"常规", assign:["N","R","B","N","S","N"]},
+            {type:"常规", assign:["S","N","N","R","B","N"]}, {type:"值班", assign:["V","R","R","R","V","V"]},
+            {type:"值班", assign:["R","R","V","V","R","V"]}, {type:"常规", assign:["N","B","S","N","R","N"]},
+            {type:"常规", assign:["B","R","N","S","N","N"]}, {type:"常规", assign:["N","N","R","B","S","N"]},
+            {type:"常规", assign:["S","R","N","N","B","N"]}, {type:"常规", assign:["R","N","B","S","N","N"]},
+            {type:"值班", assign:["R","V","R","R","V","V"]}, {type:"值班", assign:["V","R","V","R","R","V"]},
+            {type:"常规", assign:["N","B","N","R","S","N"]}, {type:"常规", assign:["B","R","S","N","N","N"]},
+            {type:"常规", assign:["S","N","N","B","R","N"]}, {type:"常规", assign:["N","S","R","N","B","N"]},
+            {type:"常规", assign:["R","N","B","S","N","N"]}, {type:"值班", assign:["R","R","R","V","V","V"]},
+            {type:"值班", assign:["V","V","R","R","R","V"]}, {type:"常规", assign:["B","R","N","N","S","N"]}
+        ];
+        return rawPattern.map(pat => ({
+            type: pat.type,
+            assignments: Object.fromEntries(allVideo.map((s, idx) => [s, pat.assign[idx]]))
+        }));
+    }
+    
+    // ----------------------------- 平面组28天周期（每人休8天，含2次连休）---------------------------------
+    function buildGraphicCycle() {
+        let cycle = new Array(28);
+        // 初始化全工作（拍/p交替基准）
+        for(let i=0;i<28;i++) cycle[i] = { zhong: "拍", zheng: "p", overtimeNote: "" };
+        
+        // 1. 固定两次连休（每人4天）
+        // 钟豪昌：周六+周日  (索引3周六,4周日) 和 (17周六,18周日)
+        cycle[3].zhong = "休"; cycle[4].zhong = "休";
+        cycle[17].zhong = "休"; cycle[18].zhong = "休";
+        // 郑楚君：周日+周一  (索引11周日,12周一) 和 (24周日,25周一)
+        cycle[11].zheng = "休"; cycle[12].zheng = "休";
+        cycle[24].zheng = "休"; cycle[25].zheng = "休";
+        
+        // 2. 添加单休（每人额外4天，总休8天），且保证不同时休、不破坏连休模式
+        // 钟豪昌单休日（避开已休日期，且不与郑楚君连休冲突，尽量均匀）
+        const zhongSingle = [6, 9, 14, 21];  // 周二、周五、周三、周三（均非周末，不会造成连续三天休息）
+        // 郑楚君单休日（避开已休日期）
+        const zhengSingle = [0, 7, 15, 22];  // 周三、周三、周三、周三
+        
+        for(let idx of zhongSingle) if(cycle[idx].zhong !== "休") cycle[idx].zhong = "休";
+        for(let idx of zhengSingle) if(cycle[idx].zheng !== "休") cycle[idx].zheng = "休";
+        
+        // 3. 确保两人不同时休息（若冲突，强制将郑的单休改为工作）
+        for(let i=0;i<28;i++) {
+            if(cycle[i].zhong === "休" && cycle[i].zheng === "休") {
+                // 优先保留钟的休息，让郑工作
+                cycle[i].zheng = (i%2===0) ? "拍" : "p";  // 随机但保证互补
+            }
+        }
+        
+        // 4. 填充非休息日的拍/p交替（互补且维持工作平衡）
+        for(let i=0;i<28;i++) {
+            const zhongRest = (cycle[i].zhong === "休");
+            const zhengRest = (cycle[i].zheng === "休");
+            if(zhongRest && !zhengRest) {
+                // 钟休，郑不能休，状态取与前一天郑相反（避免疲劳）
+                if(i>0 && cycle[i-1].zheng !== "休") cycle[i].zheng = (cycle[i-1].zheng === "拍") ? "p" : "拍";
+                else cycle[i].zheng = "拍";
+                continue;
+            }
+            if(!zhongRest && zhengRest) {
+                if(i>0 && cycle[i-1].zhong !== "休") cycle[i].zhong = (cycle[i-1].zhong === "拍") ? "p" : "拍";
+                else cycle[i].zhong = "拍";
+                continue;
+            }
+            if(!zhongRest && !zhengRest) {
+                if(i===0) { cycle[i].zhong = "拍"; cycle[i].zheng = "p"; }
+                else {
+                    let prevZhong = cycle[i-1].zhong;
+                    if(prevZhong !== "休") cycle[i].zhong = (prevZhong === "拍") ? "p" : "拍";
+                    else {
+                        let prevZheng = cycle[i-1].zheng;
+                        cycle[i].zhong = (prevZheng === "拍") ? "p" : "拍";
+                    }
+                    cycle[i].zheng = (cycle[i].zhong === "拍") ? "p" : "拍";
+                }
+            }
+        }
+        
+        // 验证休息总天数
+        let zhongRestCount = cycle.filter(d=>d.zhong==="休").length;
+        let zhengRestCount = cycle.filter(d=>d.zheng==="休").length;
+        console.log(`平面组休息天数: 钟豪昌=${zhongRestCount}天, 郑楚君=${zhengRestCount}天 (应为8天)`);
+        
+        // 特殊日期修正
+        // 4月26日（索引11）：钟豪昌 应该是"拍"而不是"p"
+        if (cycle[11].zhong !== "休") {
+            cycle[11].zhong = "拍";
+        }
+        // 4月29日（索引14）：郑楚君 应该是"拍"而不是"p"
+        if (cycle[14].zheng !== "休") {
+            cycle[14].zheng = "拍";
+        }
+        
+        return cycle;
+    }
+    
+    const VIDEO_CYCLE = buildVideoCycle();
+    const GRAPHIC_CYCLE = buildGraphicCycle();
+    const BASE_START = new Date(2026, 3, 15);
+    
+    function getCycleIndex(date) {
+        const diffDays = Math.floor((date - BASE_START) / (1000*60*60*24));
+        let idx = diffDays % 28;
+        if(idx < 0) idx += 28;
+        return idx;
+    }
+    
+    function getDailySchedule(date) {
+        const idx = getCycleIndex(date);
+        const videoDay = VIDEO_CYCLE[idx];
+        const graphicDay = GRAPHIC_CYCLE[idx];
+        const weekDay = date.getDay();
+        const isWeekend = (weekDay === 0 || weekDay === 1);
+        
+        let videoWhite = null, videoNight = [], videoStandby = [], videoRest = [];
+        for(let staff of [...videoStaff, specialStaff]) {
+            const code = videoDay.assignments[staff];
+            if(code === 'B') videoWhite = staff;
+            else if(code === 'N' || code === 'V') videoNight.push(staff);
+            else if(code === 'S') videoStandby.push(staff);
+            else if(code === 'R') videoRest.push(staff);
+        }
+        
+        let photoNight = [], photoStandby = [], photoRest = [];
+        const zhong = graphicDay.zhong, zheng = graphicDay.zheng;
+        // 平面组无论是拍还是p，都放在夜班·值班列
+        if(zhong === "拍" || zhong === "p") photoNight.push("钟豪昌|" + zhong);
+        else if(zhong === "休") photoRest.push("钟豪昌");
+        
+        if(zheng === "拍" || zheng === "p") photoNight.push("郑楚君|" + zheng);
+        else if(zheng === "休") photoRest.push("郑楚君");
+        
+        let white = (videoWhite && !isWeekend) ? [videoWhite] : [];
+        let night = [...videoNight, ...photoNight];
+        let standby = [...videoStandby, ...photoStandby];
+        let rest = [...videoRest, ...photoRest];
+        
+        return { white, night, standby, rest, overtimeNote: graphicDay.overtimeNote, isWeekend };
+    }
+    
+    function renderMonth(year, month) {
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month+1, 0);
+        const tbody = document.getElementById("scheduleBody");
+        tbody.innerHTML = "";
+        
+        // 获取今天日期用于定位
+        const today = new Date();
+        const isTodayInMonth = today.getFullYear() === year && today.getMonth() === month;
+        const todayDate = today.getDate();
+        
+        for(let d=1; d<=lastDay.getDate(); d++) {
+            // 2026年4月1日到13日不显示
+            if (year === 2026 && month === 3 && d >= 1 && d <= 13) {
+                continue;
+            }
+            
+            const curDate = new Date(year, month, d);
+            const weekDay = curDate.getDay();
+            const weekStr = ['周日','周一','周二','周三','周四','周五','周六'][weekDay];
+            
+            // 判断是否是今天
+            const isToday = isTodayInMonth && d === todayDate;
+            
+            // 日期标签添加今日标记
+            let dateLabel = `${curDate.getMonth()+1}/${d} (${weekStr})`;
+            if(isToday) {
+                dateLabel = `${dateLabel}<span class="today-badge">今天</span>`;
+            }
+            
+            const s = getDailySchedule(curDate);
+            
+            // 获取当天的请假记录
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            const dayLeaves = leaveRecords.filter(l => l.date === dateStr);
+            
+            // 行样式：周末背景 + 今日高亮
+            let rowClass = (weekDay===0||weekDay===1) ? 'weekend-bg' : '';
+            if(isToday) {
+                rowClass += ' today-highlight';
+            }
+            
+            const whiteHtml = s.white.length ? `<div class="staff-list">${s.white.map(w=>`<span class="staff-tag video">🎥 ${w}</span>`).join('')}</div>` : '<span style="color:#9ca3af;">—</span>';
+            let nightHtml = '';
+            if(s.night.length) {
+                const vNight = s.night.filter(n=>videoStaff.includes(n)||n===specialStaff).map(v=>`<span class="staff-tag video">🎥 ${v}</span>`).join('');
+                const pNight = s.night.filter(n=>n.includes('钟豪昌')||n.includes('郑楚君')).map(p => {
+                    const parts = p.split('|');
+                    const name = parts[0];
+                    const status = parts[1] || '拍';
+                    const icon = status === 'p' ? '✏️' : '📷';
+                    const suffix = status === 'p' ? '(p)' : '';
+                    return `<span class="staff-tag photo">${icon} ${name}${suffix}</span>`;
+                }).join('');
+                nightHtml = `<div class="staff-list">${vNight} ${pNight}</div>`;
+            } else nightHtml = '<span style="color:#9ca3af;">—</span>';
+            let standbyHtml = '';
+            if(s.standby.length) {
+                const vStand = s.standby.filter(n=>videoStaff.includes(n)||n===specialStaff).map(v=>`<span class="staff-tag video">🎥 ${v}</span>`).join('');
+                const pStand = s.standby.filter(n=>n==="钟豪昌"||n==="郑楚君").map(p=>`<span class="staff-tag photo">✏️ ${p}(p)</span>`).join('');
+                standbyHtml = `<div class="staff-list">${vStand} ${pStand}</div>`;
+            } else standbyHtml = '<span style="color:#9ca3af;">—</span>';
+            let restHtml = '';
+            if(s.rest.length || dayLeaves.length) {
+                const vRest = s.rest.filter(n=>videoStaff.includes(n)||n===specialStaff).map(v=>`<span class="staff-tag rest">🎥 ${v}</span>`).join('');
+                const pRest = s.rest.filter(n=>n==="钟豪昌"||n==="郑楚君").map(p=>`<span class="staff-tag rest">📷 ${p}</span>`).join('');
+                const leaveHtml = dayLeaves.map(l => {
+                    const isVideo = videoStaff.includes(l.staff) || l.staff === specialStaff;
+                    const icon = isVideo ? '🎥' : '📷';
+                    return `<span class="staff-tag rest" style="border-left: 3px solid #f59e0b;">🏥 ${icon} ${l.staff}</span>`;
+                }).join('');
+                restHtml = `<div class="staff-list">${vRest} ${pRest} ${leaveHtml}</div>`;
+            } else restHtml = '<span style="color:#9ca3af;">—</span>';
+            
+            tbody.innerHTML += `<tr class="${rowClass}">
+                <td class="date-col">${dateLabel}</td>
+                <td style="background:#fefdf5;">${whiteHtml}</td>
+                <td style="background:#f8fafc;">${nightHtml}</td>
+                <td style="background:#fffbeb;">${standbyHtml}</td>
+                <td style="background:#fef2f2;">${restHtml}</td>
+            </tr>`;
+        }
+        document.getElementById("currentMonthLabel").innerText = `${year}年${month+1}月`;
+    }
+    
+    let currentYear = 2026, currentMonth = 3;
+
+    // ----------------------------- 请假和顶班数据存储 ---------------------------------
+    let leaveRecords = [];  // 存储请假记录
+    let coverRecords = [];  // 存储顶班记录
+
+    // ----------------------------- Firebase 实时同步 ---------------------------------
+    // Firebase 配置
+    const firebaseConfig = {
+      apiKey: "AIzaSyAF_nioVAIjUaz6Y5JKjOPC2hwy4PXBhyI",
+      authDomain: "y12y-ef7b7.firebaseapp.com",
+      databaseURL: "https://y12y-ef7b7-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "y12y-ef7b7",
+      storageBucket: "y12y-ef7b7.firebasestorage.app",
+      messagingSenderId: "530581491581",
+      appId: "1:530581491581:web:0424563693f2fda7f08614",
+      measurementId: "G-XQ9JWBEKZD"
+    };
+
+    // 初始化 Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    // 从 Firebase 加载请假记录
+    function loadLeaveRecordsFromFirebase() {
+      database.ref('leaveRecords').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          leaveRecords = Object.values(data);
+          renderLeaveRecords();
+          updateSimpleStats();
+          update();
+        }
+      });
+    }
+
+    // 保存请假记录到 Firebase
+    function saveLeaveRecordsToFirebase() {
+      database.ref('leaveRecords').set(leaveRecords.map((record, index) => {
+        return { ...record, id: index };
+      }));
+    }
+
+    // 添加请假记录
+    function addLeaveRecord(record) {
+      leaveRecords.push(record);
+      saveLeaveRecordsToFirebase();
+    }
+
+    // 撤销请假记录
+    function revokeLeaveRecord(index) {
+      leaveRecords.splice(index, 1);
+      saveLeaveRecordsToFirebase();
+    }
+
+    // 初始化时从 Firebase 加载数据
+    loadLeaveRecordsFromFirebase();
+
+    // ----------------------------- 实时时间更新 ---------------------------------
+    function updateCurrentTime() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const weekDays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+        const weekDay = weekDays[now.getDay()];
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        
+        document.getElementById('currentTime').innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <span>${year}/${month}/${day}  ${weekDay}  ${hours}:${minutes}:${seconds}</span>
+        `;
+    }
+
+    // ----------------------------- 今日排班渲染 ---------------------------------
+    function renderTodaySchedule() {
+        const today = new Date();
+        const schedule = getDailySchedule(today);
+        
+        // 获取今日请假和顶班信息
+        const todayStr = formatDate(today);
+        const todayLeaves = leaveRecords.filter(l => l.date === todayStr);
+        const todayCovers = coverRecords.filter(c => c.date === todayStr);
+        
+        // 渲染白班
+        const whiteHtml = schedule.white.length > 0 
+            ? schedule.white.map(s => `<span class="video-icon">🎥${s}</span>`).join(' ')
+            : '<span class="empty-state">—</span>';
+        document.getElementById('todayWhite').innerHTML = whiteHtml;
+        
+        // 渲染夜班
+        const nightHtml = schedule.night.length > 0 
+            ? schedule.night.map(s => {
+                const isVideo = videoStaff.includes(s) || s === specialStaff;
+                const icon = isVideo ? '🎥' : '📷';
+                return `<span>${icon}${s}</span>`;
+            }).join(' ')
+            : '<span class="empty-state">—</span>';
+        document.getElementById('todayNight').innerHTML = nightHtml;
+        
+        // 渲染待命
+        const standbyHtml = schedule.standby.length > 0 
+            ? schedule.standby.map(s => {
+                const isVideo = videoStaff.includes(s) || s === specialStaff;
+                const icon = isVideo ? '🎥' : '📷';
+                return `<span>${icon}${s}</span>`;
+            }).join(' ')
+            : '<span class="empty-state">—</span>';
+        document.getElementById('todayStandby').innerHTML = standbyHtml;
+        
+        // 渲染正常休息
+        const restHtml = schedule.rest.length > 0 
+            ? schedule.rest.map(s => {
+                const isVideo = videoStaff.includes(s) || s === specialStaff;
+                const icon = isVideo ? '🎥' : '📷';
+                return `<span class="rest-icon">${icon}${s}</span>`;
+            }).join(' ')
+            : '<span class="empty-state">—</span>';
+        document.getElementById('todayRest').innerHTML = restHtml;
+        
+        // 渲染请假
+        if (todayLeaves.length > 0) {
+            const leaveHtml = todayLeaves.map(l => `<span class="leave-icon">🏥${l.staff}</span>`).join(' ');
+            document.getElementById('todayLeave').innerHTML = leaveHtml;
+        } else {
+            document.getElementById('todayLeave').innerHTML = '<span class="empty-state">无</span>';
+        }
+        
+        // 渲染顶班
+        if (todayCovers.length > 0) {
+            const coverHtml = todayCovers.map(c => `<span class="cover-icon">🔄${c.coverStaff}(${c.originalStaff})</span>`).join(' ');
+            document.getElementById('todayCover').innerHTML = coverHtml;
+        } else {
+            document.getElementById('todayCover').innerHTML = '<span class="empty-state">无</span>';
+        }
+    }
+
+    // 格式化日期为 YYYY-MM-DD
+    function formatDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    // ----------------------------- 请假弹窗功能 ---------------------------------
+    function openLeaveModal() {
+        document.getElementById('leaveModal').classList.add('show');
+        // 设置默认日期为今天
+        const today = new Date();
+        document.getElementById('leaveDate').value = formatDate(today);
+        // 清空表单
+        document.getElementById('leaveStaff').value = '';
+        document.getElementById('leaveReason').value = '';
+        document.getElementById('notificationArea').innerHTML = '';
+        // 清空顶班人员选择
+        document.getElementById('coverStaffGrid').innerHTML = '';
+    }
+
+    function closeLeaveModal() {
+        document.getElementById('leaveModal').classList.remove('show');
+    }
+
+    // 所有人员列表
+    const allStaff = ['赖京华', '冯健材', '梁元科', '颜世才', '伍鹏宁', '资凡', '钟豪昌', '郑楚君'];
+    
+    // 当选择请假人员时，显示顶班人员选项
+    document.getElementById('leaveStaff').addEventListener('change', function() {
+        const staff = this.value;
+        const dateStr = document.getElementById('leaveDate').value;
+        
+        if (staff && dateStr) {
+            generateCoverRecommendations(staff, dateStr);
+        }
+    });
+
+    document.getElementById('leaveDate').addEventListener('change', function() {
+        const staff = document.getElementById('leaveStaff').value;
+        const dateStr = this.value;
+        
+        if (staff && dateStr) {
+            generateCoverRecommendations(staff, dateStr);
+        }
+    });
+
+    // 顶班方式切换事件
+    document.querySelectorAll('input[name="coverMode"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            const staff = document.getElementById('leaveStaff').value;
+            const dateStr = document.getElementById('leaveDate').value;
+            
+            if (staff && dateStr) {
+                generateCoverRecommendations(staff, dateStr);
+            }
+        });
+    });
+
+    // 生成顶班人员选项
+    function generateCoverRecommendations(leaveStaff, dateStr) {
+        const dateParts = dateStr.split('-');
+        const date = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+        const schedule = getDailySchedule(date);
+        const coverMode = document.querySelector('input[name="coverMode"]:checked').value;
+        
+        // 判断请假人员属于视频组还是平面组
+        const isLeaveVideo = videoStaff.includes(leaveStaff) || leaveStaff === specialStaff;
+        
+        // 获取当天休息的人员作为推荐顶班候选人
+        const restStaff = [...schedule.rest];
+        
+        // 获取待命人员作为备选
+        const standbyStaff = [...schedule.standby];
+        
+        // 根据模式选择显示的人员
+        let candidates;
+        if (coverMode === 'auto') {
+            // 系统自动分配模式：只显示休息和待命人员
+            candidates = [...new Set([...restStaff, ...standbyStaff])]
+                .filter(s => s !== leaveStaff);
+        } else {
+            // 自定义选择模式：显示所有人员
+            candidates = allStaff.filter(s => s !== leaveStaff);
+        }
+        
+        // 如果是视频组人员请假，只显示视频组人员作为顶班候选人
+        // 如果是平面组人员请假，只显示平面组人员作为顶班候选人
+        if (isLeaveVideo) {
+            candidates = candidates.filter(s => videoStaff.includes(s) || s === specialStaff);
+        } else {
+            candidates = candidates.filter(s => !videoStaff.includes(s) && s !== specialStaff);
+        }
+        
+        // 判断请假人员当天的班次
+        let leaveShift = '';
+        if (schedule.white.includes(leaveStaff)) leaveShift = '白班';
+        else if (schedule.night.includes(leaveStaff)) leaveShift = '夜班';
+        else if (schedule.standby.includes(leaveStaff)) leaveShift = '待命';
+        
+        // 显示通知
+        let notification = '';
+        if (schedule.rest.includes(leaveStaff)) {
+            notification = showNotification('warning', '该人员当天原本就是休息状态，无需顶班');
+        } else {
+            const modeText = coverMode === 'auto' ? '系统推荐' : '自定义选择';
+            notification = showNotification('info', `📌 ${leaveStaff} 当天排班：${leaveShift}（${modeText}模式）`);
+        }
+        
+        // 生成顶班人员选择网格
+        const grid = document.getElementById('coverStaffGrid');
+        grid.innerHTML = candidates.map(candidate => {
+            const isRest = restStaff.includes(candidate);
+            const isStandby = standbyStaff.includes(candidate);
+            const isVideo = videoStaff.includes(candidate) || candidate === specialStaff;
+            const icon = isVideo ? '🎥' : '📷';
+            const role = isVideo ? '视频组' : '平面组';
+            
+            // 系统模式下默认勾选休息人员，自定义模式下不默认勾选
+            const isChecked = coverMode === 'auto' && isRest;
+            
+            return `
+                <label class="staff-checkbox ${isChecked ? 'selected' : ''}" data-staff="${candidate}">
+                    <input type="checkbox" name="coverStaff" value="${candidate}" ${isChecked ? 'checked' : ''}>
+                    <div>
+                        <div class="staff-name">${icon} ${candidate}</div>
+                        <div class="staff-role">${role}${isStandby ? ' · 待命' : ''}</div>
+                    </div>
+                    ${isRest ? '<span class="recommend-tag">推荐</span>' : ''}
+                </label>
+            `;
+        }).join('');
+    }
+
+    // 显示通知
+    function showNotification(type, message) {
+        const area = document.getElementById('notificationArea');
+        const classes = {
+            'success': 'success',
+            'error': 'error',
+            'warning': 'warning',
+            'info': 'warning'
+        };
+        
+        area.innerHTML = `<div class="notification ${classes[type]}">${message}</div>`;
+        return area.innerHTML;
+    }
+
+    // 管理员密码
+    const ADMIN_PASSWORD = '121223';
+    
+    // 提交请假申请
+    function submitLeaveRequest() {
+        const date = document.getElementById('leaveDate').value;
+        const staff = document.getElementById('leaveStaff').value;
+        const reason = document.getElementById('leaveReason').value;
+        const coverMode = document.querySelector('input[name="coverMode"]:checked').value;
+        
+        if (!date || !staff) {
+            showNotification('error', '请填写完整的请假信息');
+            return;
+        }
+        
+        // 弹出密码输入窗口
+        const password = prompt('请输入管理员密码以确认请假：');
+        
+        // 用户取消输入
+        if (password === null) {
+            return;
+        }
+        
+        // 验证管理员密码
+        if (password !== ADMIN_PASSWORD) {
+            alert('❌ 管理员密码错误！');
+            return;
+        }
+        
+        // 获取当天排班信息
+        const dateParts = date.split('-');
+        const scheduleDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+        const schedule = getDailySchedule(scheduleDate);
+        
+        // 获取选中的顶班人员
+        let coverStaff = Array.from(document.querySelectorAll('input[name="coverStaff"]:checked'))
+            .map(input => input.value);
+        
+        // 系统自动分配模式：如果没有选择顶班人员且需要顶班，则自动分配
+        if (coverMode === 'auto' && coverStaff.length === 0 && !schedule.rest.includes(staff)) {
+            // 优先选择休息人员顶班
+            const availableCover = schedule.rest.filter(s => s !== staff);
+            if (availableCover.length > 0) {
+                coverStaff = [availableCover[0]]; // 选择第一个休息人员
+            }
+        }
+        
+        // 检查是否需要顶班
+        if (!schedule.rest.includes(staff) && coverStaff.length === 0) {
+            showNotification('error', `${staff} 当天有排班（${schedule.white.includes(staff) ? '白班' : schedule.night.includes(staff) ? '夜班' : '待命'}），请至少选择一位顶班人员`);
+            return;
+        }
+        
+        // 保存原始排班状态用于撤销
+        const idx = getCycleIndex(scheduleDate);
+        const originalVideoAssignments = {...VIDEO_CYCLE[idx].assignments};
+        const originalGraphicZhong = GRAPHIC_CYCLE[idx].zhong;
+        const originalGraphicZheng = GRAPHIC_CYCLE[idx].zheng;
+        
+        // 添加请假记录（包含原始状态用于撤销）
+        leaveRecords.push({ 
+            date, 
+            staff, 
+            reason, 
+            coverStaff: [...coverStaff],
+            timestamp: new Date().toISOString(),
+            originalVideoAssignments,
+            originalGraphicZhong,
+            originalGraphicZheng,
+            idx
+        });
+        saveLeaveRecordsToFirebase();
+        
+        // 添加顶班记录
+        coverStaff.forEach(cover => {
+            coverRecords.push({ 
+                date, 
+                originalStaff: staff, 
+                coverStaff: cover,
+                timestamp: new Date().toISOString() 
+            });
+        });
+        
+        // 更新排班数据：将请假人员从原班次移除，添加到休息&请假
+        updateScheduleOnLeave(date, staff, coverStaff);
+        
+        showNotification('success', `✅ 请假申请提交成功！\n请假人员：${staff}\n日期：${date}\n顶班人员：${coverStaff.join('、') || '无'}`);
+        
+        // 刷新请假记录列表
+        renderLeaveRecords();
+        
+        // 3秒后关闭弹窗并刷新排班显示
+        setTimeout(() => {
+            closeLeaveModal();
+            renderTodaySchedule();
+            renderMonth(currentYear, currentMonth);
+        }, 2000);
+    }
+    
+    // 更新排班数据（请假时）
+    function updateScheduleOnLeave(dateStr, leaveStaff, coverStaff) {
+        const dateParts = dateStr.split('-');
+        const date = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+        const idx = getCycleIndex(date);
+        
+        // 获取当天原始排班信息
+        const originalSchedule = getDailySchedule(date);
+        
+        // 更新视频组周期数据
+        const videoDay = VIDEO_CYCLE[idx];
+        for (let staff of [...videoStaff, specialStaff]) {
+            if (staff === leaveStaff) {
+                // 将请假人员的排班改为休息
+                videoDay.assignments[staff] = 'R';
+            }
+            // 如果是顶班人员，设置到相应班次
+            if (coverStaff.includes(staff)) {
+                if (originalSchedule.white.includes(leaveStaff)) {
+                    videoDay.assignments[staff] = 'B';
+                } else if (originalSchedule.night.includes(leaveStaff)) {
+                    videoDay.assignments[staff] = 'N';
+                } else if (originalSchedule.standby.includes(leaveStaff)) {
+                    videoDay.assignments[staff] = 'S';
+                }
+            }
+        }
+        
+        // 更新平面组周期数据
+        const graphicDay = GRAPHIC_CYCLE[idx];
+        if (graphicDay.zhong === leaveStaff) {
+            graphicDay.zhong = '休';
+        }
+        if (graphicDay.zheng === leaveStaff) {
+            graphicDay.zheng = '休';
+        }
+        
+        // 设置顶班人员
+        coverStaff.forEach(cover => {
+            if (cover === '钟豪昌' && originalSchedule.night.includes(leaveStaff)) {
+                graphicDay.zhong = '拍';
+            }
+            if (cover === '郑楚君' && originalSchedule.night.includes(leaveStaff)) {
+                graphicDay.zheng = '拍';
+            }
+        });
+    }
+
+    // 渲染请假记录列表
+    function renderLeaveRecords() {
+        const list = document.getElementById('leaveRecordsList');
+        const count = document.getElementById('leaveCount');
+        
+        if (leaveRecords.length === 0) {
+            list.innerHTML = '<div class="empty-state">暂无请假记录</div>';
+            count.textContent = '0';
+            return;
+        }
+        
+        count.textContent = leaveRecords.length;
+        
+        // 按日期排序
+        const sortedRecords = [...leaveRecords].sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        list.innerHTML = sortedRecords.map((record, index) => {
+            const dateParts = record.date.split('-');
+            const dateStr = `${dateParts[1]}/${dateParts[2]}`;
+            const isVideo = videoStaff.includes(record.staff) || record.staff === specialStaff;
+            const icon = isVideo ? '🎥' : '📷';
+            
+            return `
+                <div class="leave-record-item">
+                    <div class="leave-record-info">
+                        <div class="leave-record-date">📅 ${record.date}</div>
+                        <div class="leave-record-staff">${icon} ${record.staff}</div>
+                        ${record.reason ? `<div class="leave-record-reason">💬 ${record.reason}</div>` : ''}
+                        ${record.coverStaff && record.coverStaff.length > 0 ? `<div class="leave-record-covers">🔄 顶班：${record.coverStaff.join('、')}</div>` : ''}
+                    </div>
+                    <div class="leave-record-actions">
+                        <button class="btn-revoke" onclick="revokeLeave(${index})">撤销</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    // 撤销请假
+    function revokeLeave(index) {
+        const password = prompt('请输入管理员密码以撤销请假：');
+        
+        if (password !== ADMIN_PASSWORD) {
+            alert('❌ 管理员密码错误！');
+            return;
+        }
+        
+        const record = leaveRecords[index];
+        
+        // 恢复原始排班状态
+        if (record.originalVideoAssignments) {
+            VIDEO_CYCLE[record.idx].assignments = {...record.originalVideoAssignments};
+        }
+        if (record.originalGraphicZhong !== undefined) {
+            GRAPHIC_CYCLE[record.idx].zhong = record.originalGraphicZhong;
+        }
+        if (record.originalGraphicZheng !== undefined) {
+            GRAPHIC_CYCLE[record.idx].zheng = record.originalGraphicZheng;
+        }
+        
+        // 从请假记录中移除
+        leaveRecords.splice(index, 1);
+        saveLeaveRecordsToFirebase();
+        
+        // 移除相关的顶班记录
+        coverRecords = coverRecords.filter(c => !(c.date === record.date && c.originalStaff === record.staff));
+        
+        // 刷新显示
+        renderLeaveRecords();
+        renderTodaySchedule();
+        renderMonth(currentYear, currentMonth);
+        
+        alert(`✅ 已成功撤销 ${record.staff} 在 ${record.date} 的请假申请，排班已恢复。`);
+    }
+    
+    // ----------------------------- 简单员工统计 ---------------------------------
+    function updateSimpleStats() {
+        document.getElementById('simpleStatsMonth').textContent = `${currentYear}年${currentMonth + 1}月`;
+        
+        const graphicStaff = ['钟豪昌', '郑楚君'];
+        const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+        const stats = {};
+        const allStaff = [...videoStaff, specialStaff, ...graphicStaff];
+        
+        allStaff.forEach(staff => {
+            stats[staff] = { work: 0, rest: 0, leave: 0 };
+        });
+        
+        // 统计每天的排班
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const schedule = getScheduleForDate(dateStr);
+            
+            allStaff.forEach(staff => {
+                if (schedule.white.includes(staff) || schedule.night.includes(staff) || schedule.standby.includes(staff)) {
+                    stats[staff].work++;
+                } else if (schedule.rest.includes(staff)) {
+                    stats[staff].rest++;
+                }
+            });
+        }
+        
+        // 统计请假天数
+        leaveRecords.forEach(record => {
+            const recordDate = new Date(record.date);
+            if (recordDate.getFullYear() === currentYear && recordDate.getMonth() === currentMonth) {
+                if (stats[record.staff]) {
+                    stats[record.staff].leave++;
+                    if (stats[record.staff].rest > 0) {
+                        stats[record.staff].rest--;
+                    }
+                }
+            }
+        });
+        
+        // 渲染统计卡片
+        const grid = document.getElementById('simpleStatsGrid');
+        grid.innerHTML = allStaff.map(staff => {
+            const s = stats[staff];
+            return `
+                <div class="stat-simple-card">
+                    <div class="stat-simple-name">${staff}</div>
+                    <div class="stat-simple-items">
+                        <div class="stat-simple-row stat-work">
+                            <span class="stat-simple-row-label">上班</span>
+                            <span class="stat-simple-row-value">${s.work}</span>
+                        </div>
+                        <div class="stat-simple-row stat-rest">
+                            <span class="stat-simple-row-label">休息</span>
+                            <span class="stat-simple-row-value">${s.rest}</span>
+                        </div>
+                        <div class="stat-simple-row stat-leave">
+                            <span class="stat-simple-row-label">请假</span>
+                            <span class="stat-simple-row-value">${s.leave}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // ----------------------------- 主更新函数 ---------------------------------
+    function update() { 
+        renderMonth(currentYear, currentMonth); 
+        renderTodaySchedule();
+        updateSimpleStats();
+    }
+
+    // ----------------------------- 初始化 ---------------------------------
+    function init() {
+        // 启动实时时间更新
+        updateCurrentTime();
+        setInterval(updateCurrentTime, 1000);
+        
+        // 渲染今日排班
+        renderTodaySchedule();
+        
+        // 初始化月份视图
+        renderMonth(currentYear, currentMonth);
+        
+        // 渲染请假记录列表
+        renderLeaveRecords();
+        
+        // 更新简单统计
+        updateSimpleStats();
+        
+        // 添加弹窗点击关闭事件
+        document.getElementById('leaveModal').addEventListener('click', function(e) {
+            if (e.target === this) closeLeaveModal();
+        });
+    }
+
+    document.getElementById("prevMonthBtn").onclick = () => {
+        // 锁定在2026年4月，不允许翻阅到之前的月份
+        if (currentYear === 2026 && currentMonth === 3) {
+            return; // 已经是2026年4月，不能再往前翻
+        }
+        if(currentMonth===0) { currentMonth=11; currentYear--; } else currentMonth--;
+        update();
+    };
+    
+    document.getElementById("nextMonthBtn").onclick = () => {
+        if(currentMonth===11) { currentMonth=0; currentYear++; } else currentMonth++;
+        update();
+    };
+
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
