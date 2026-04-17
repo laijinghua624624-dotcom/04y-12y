@@ -1294,8 +1294,13 @@
             } else standbyHtml = '<span style="color:#9ca3af;">—</span>';
             let restHtml = '';
             if(s.rest.length || dayLeaves.length) {
-                const vRest = s.rest.filter(n=>videoStaff.includes(n)||n===specialStaff).map(v=>`<span class="staff-tag rest">🎥 ${v}</span>`).join('');
-                const pRest = s.rest.filter(n=>n==="钟豪昌"||n==="郑楚君").map(p=>`<span class="staff-tag rest">📷 ${p}</span>`).join('');
+                // 获取当天请假的人员名单
+                const leaveStaffNames = dayLeaves.map(l => l.staff);
+                // 过滤休息人员：如果已经在请假列表中，就不重复显示
+                const filteredRest = s.rest.filter(n => !leaveStaffNames.includes(n));
+                
+                const vRest = filteredRest.filter(n=>videoStaff.includes(n)||n===specialStaff).map(v=>`<span class="staff-tag rest">🎥 ${v}</span>`).join('');
+                const pRest = filteredRest.filter(n=>n==="钟豪昌"||n==="郑楚君").map(p=>`<span class="staff-tag rest">📷 ${p}</span>`).join('');
                 const leaveHtml = dayLeaves.map(l => {
                     const isVideo = videoStaff.includes(l.staff) || l.staff === specialStaff;
                     const icon = isVideo ? '🎥' : '📷';
@@ -1340,22 +1345,44 @@
 
     // 从 Firebase 加载请假记录
     function loadLeaveRecordsFromFirebase() {
+      console.log('📡 Firebase 开始监听数据...');
+      
       database.ref('leaveRecords').on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-          leaveRecords = Object.values(data);
-          renderLeaveRecords();
-          updateSimpleStats();
-          update();
+        try {
+          const data = snapshot.val();
+          console.log('📡 Firebase 收到数据:', data);
+          
+          if (data) {
+            leaveRecords = Object.values(data);
+            console.log('📡 请假记录已更新:', leaveRecords);
+            renderLeaveRecords();
+            updateSimpleStats();
+            renderTodaySchedule();
+            renderMonth(currentYear, currentMonth);
+          } else {
+            console.log('📡 Firebase 暂无数据');
+            leaveRecords = [];
+            renderLeaveRecords();
+            updateSimpleStats();
+          }
+        } catch (error) {
+          console.error('❌ Firebase 数据加载错误:', error);
         }
+      }, (error) => {
+        console.error('❌ Firebase 监听错误:', error);
       });
     }
 
     // 保存请假记录到 Firebase
     function saveLeaveRecordsToFirebase() {
+      console.log('💾 Firebase 保存数据:', leaveRecords);
       database.ref('leaveRecords').set(leaveRecords.map((record, index) => {
         return { ...record, id: index };
-      }));
+      })).then(() => {
+        console.log('✅ Firebase 保存成功');
+      }).catch((error) => {
+        console.error('❌ Firebase 保存失败:', error);
+      });
     }
 
     // 添加请假记录
