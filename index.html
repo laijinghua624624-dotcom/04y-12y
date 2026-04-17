@@ -1293,7 +1293,7 @@
                 standbyHtml = `<div class="staff-list">${vStand} ${pStand}</div>`;
             } else standbyHtml = '<span style="color:#9ca3af;">—</span>';
             let restHtml = '';
-            if(s.rest.length || dayLeaves.length) {
+if(s.rest.length || dayLeaves.length) {
                 // 获取当天请假的人员名单
                 const leaveStaffNames = dayLeaves.map(l => l.staff);
                 // 过滤休息人员：如果已经在请假列表中，就不重复显示
@@ -1871,7 +1871,8 @@
         // 统计每天的排班
         for (let day = 1; day <= daysInMonth; day++) {
             const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            const schedule = getScheduleForDate(dateStr);
+            const curDate = new Date(currentYear, currentMonth, day);
+            const schedule = getDailySchedule(curDate);
             
             allStaff.forEach(staff => {
                 if (schedule.white.includes(staff) || schedule.night.includes(staff) || schedule.standby.includes(staff)) {
