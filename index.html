@@ -1296,8 +1296,10 @@
 if(s.rest.length || dayLeaves.length) {
                 // 获取当天请假的人员名单
                 const leaveStaffNames = dayLeaves.map(l => l.staff);
-                // 过滤休息人员：如果已经在请假列表中，就不重复显示
-                const filteredRest = s.rest.filter(n => !leaveStaffNames.includes(n));
+                // 获取当天顶班的人员名单
+                const coverStaffNames = dayLeaves.flatMap(l => l.coverStaff || []);
+                // 过滤休息人员：如果已经在请假列表或顶班列表中，就不重复显示
+                const filteredRest = s.rest.filter(n => !leaveStaffNames.includes(n) && !coverStaffNames.includes(n));
                 
                 const vRest = filteredRest.filter(n=>videoStaff.includes(n)||n===specialStaff).map(v=>`<span class="staff-tag rest">🎥 ${v}</span>`).join('');
                 const pRest = filteredRest.filter(n=>n==="钟豪昌"||n==="郑楚君").map(p=>`<span class="staff-tag rest">📷 ${p}</span>`).join('');
