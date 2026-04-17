@@ -1354,9 +1354,27 @@ if(s.rest.length || dayLeaves.length) {
           const data = snapshot.val();
           console.log('📡 Firebase 收到数据:', data);
           
+          // 重新初始化排班周期
+          const newVideoCycle = buildVideoCycle();
+          const newGraphicCycle = buildGraphicCycle();
+          
+          // 复制回全局变量
+          for (let i = 0; i < VIDEO_CYCLE.length; i++) {
+            VIDEO_CYCLE[i].assignments = {...newVideoCycle[i].assignments};
+          }
+          for (let i = 0; i < GRAPHIC_CYCLE.length; i++) {
+            GRAPHIC_CYCLE[i] = {...newGraphicCycle[i]};
+          }
+          
           if (data) {
             leaveRecords = Object.values(data);
             console.log('📡 请假记录已更新:', leaveRecords);
+            
+            // 重新应用所有请假记录的顶班逻辑
+            leaveRecords.forEach(record => {
+              updateScheduleOnLeave(record.date, record.staff, record.coverStaff || []);
+            });
+            
             renderLeaveRecords();
             updateSimpleStats();
             renderTodaySchedule();
