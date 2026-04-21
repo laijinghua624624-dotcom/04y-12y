@@ -923,7 +923,7 @@
             <button id="nextMonthBtn">下一月 ▶</button>
         </div>
         <div class="actions">
-            <button id="leaveBtn" class="btn btn-primary">请假</button>
+            <button id="leaveBtn" class="btn btn-primary">请假&调休</button>
             <button id="settingsBtn" class="btn btn-secondary">⚙️ 系统设置</button>
         </div>
     </div>
@@ -941,7 +941,7 @@
                 </div>
                 <div class="today-title">📅 今日排班详情</div>
             </div>
-            <button class="today-btn" onclick="openLeaveModal()">➕ 请假</button>
+            <button class="today-btn" onclick="openLeaveModal()">➕ 请假&调休</button>
         </div>
         <div class="today-content" id="todayScheduleContent">
             <div class="today-item">
@@ -1019,7 +1019,7 @@
 <div class="modal-overlay" id="leaveModal">
     <div class="modal">
         <div class="modal-header">
-            <div class="modal-title">📝 申请临时请假</div>
+            <div class="modal-title">📝 申请临时请假&调班</div>
             <button class="modal-close" onclick="closeLeaveModal()">×</button>
         </div>
         
@@ -1051,6 +1051,12 @@
         
         <div class="form-group">
             <label for="leaveReason">请假原因</label>
+            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                <button type="button" class="btn-quick" onclick="setLeaveReason('请假')" style="padding: 6px 14px; background: #fee2e2; color: #dc2626; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer;">🏥 请假</button>
+                <button type="button" class="btn-quick" onclick="setLeaveReason('调班')" style="padding: 6px 14px; background: #dbeafe; color: #2563eb; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer;">🔄 调班</button>
+                <button type="button" class="btn-quick" onclick="setLeaveReason('事假')" style="padding: 6px 14px; background: #fef3c7; color: #d97706; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer;">📋 事假</button>
+                <button type="button" class="btn-quick" onclick="setLeaveReason('病假')" style="padding: 6px 14px; background: #d1fae5; color: #059669; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer;">💊 病假</button>
+            </div>
             <textarea id="leaveReason" placeholder="请输入请假原因..."></textarea>
         </div>
         
@@ -1079,6 +1085,8 @@
         </div>
     </div>
 </div>
+
+
 
 <script>
     // ----------------------------- 视频组配置 ---------------------------------
@@ -1267,30 +1275,51 @@
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
             const dayLeaves = leaveRecords.filter(l => l.date === dateStr);
             
+            // 获取当天顶班的人员名单
+            const coverStaffNames = dayLeaves.flatMap(l => l.coverStaff || []);
+            
             // 行样式：周末背景 + 今日高亮
             let rowClass = (weekDay===0||weekDay===1) ? 'weekend-bg' : '';
             if(isToday) {
                 rowClass += ' today-highlight';
             }
             
-            const whiteHtml = s.white.length ? `<div class="staff-list">${s.white.map(w=>`<span class="staff-tag video">🎥 ${w}</span>`).join('')}</div>` : '<span style="color:#9ca3af;">—</span>';
+            const whiteHtml = s.white.length ? `<div class="staff-list">${s.white.map(w=>{
+                const isCover = coverStaffNames.includes(w);
+                const coverBadge = isCover ? ' 🔄' : '';
+                return `<span class="staff-tag video">🎥 ${w}${coverBadge}</span>`;
+            }).join('')}</div>` : '<span style="color:#9ca3af;">—</span>';
             let nightHtml = '';
             if(s.night.length) {
-                const vNight = s.night.filter(n=>videoStaff.includes(n)||n===specialStaff).map(v=>`<span class="staff-tag video">🎥 ${v}</span>`).join('');
+                const vNight = s.night.filter(n=>videoStaff.includes(n)||n===specialStaff).map(v=>{
+                    const isCover = coverStaffNames.includes(v);
+                    const coverBadge = isCover ? ' 🔄' : '';
+                    return `<span class="staff-tag video">🎥 ${v}${coverBadge}</span>`;
+                }).join('');
                 const pNight = s.night.filter(n=>n.includes('钟豪昌')||n.includes('郑楚君')).map(p => {
                     const parts = p.split('|');
                     const name = parts[0];
                     const status = parts[1] || '拍';
                     const icon = status === 'p' ? '✏️' : '📷';
                     const suffix = status === 'p' ? '(p)' : '';
-                    return `<span class="staff-tag photo">${icon} ${name}${suffix}</span>`;
+                    const isCover = coverStaffNames.includes(name);
+                    const coverBadge = isCover ? ' 🔄' : '';
+                    return `<span class="staff-tag photo">${icon} ${name}${suffix}${coverBadge}</span>`;
                 }).join('');
                 nightHtml = `<div class="staff-list">${vNight} ${pNight}</div>`;
             } else nightHtml = '<span style="color:#9ca3af;">—</span>';
             let standbyHtml = '';
             if(s.standby.length) {
-                const vStand = s.standby.filter(n=>videoStaff.includes(n)||n===specialStaff).map(v=>`<span class="staff-tag video">🎥 ${v}</span>`).join('');
-                const pStand = s.standby.filter(n=>n==="钟豪昌"||n==="郑楚君").map(p=>`<span class="staff-tag photo">✏️ ${p}(p)</span>`).join('');
+                const vStand = s.standby.filter(n=>videoStaff.includes(n)||n===specialStaff).map(v=>{
+                    const isCover = coverStaffNames.includes(v);
+                    const coverBadge = isCover ? ' 🔄' : '';
+                    return `<span class="staff-tag video">🎥 ${v}${coverBadge}</span>`;
+                }).join('');
+                const pStand = s.standby.filter(n=>n==="钟豪昌"||n==="郑楚君").map(p=>{
+                    const isCover = coverStaffNames.includes(p);
+                    const coverBadge = isCover ? ' 🔄' : '';
+                    return `<span class="staff-tag photo">✏️ ${p}(p)${coverBadge}</span>`;
+                }).join('');
                 standbyHtml = `<div class="staff-list">${vStand} ${pStand}</div>`;
             } else standbyHtml = '<span style="color:#9ca3af;">—</span>';
             let restHtml = '';
@@ -1539,6 +1568,11 @@ if(s.rest.length || dayLeaves.length) {
 
     function closeLeaveModal() {
         document.getElementById('leaveModal').classList.remove('show');
+    }
+
+    // 设置请假原因快捷选择
+    function setLeaveReason(reason) {
+        document.getElementById('leaveReason').value = reason;
     }
 
     // 所有人员列表
@@ -1814,10 +1848,15 @@ if(s.rest.length || dayLeaves.length) {
         
         count.textContent = leaveRecords.length;
         
-        // 按日期排序
-        const sortedRecords = [...leaveRecords].sort((a, b) => new Date(a.date) - new Date(b.date));
+        // 按日期排序，但保留原始索引
+        const sortedRecords = [...leaveRecords].map((record, originalIndex) => ({
+            ...record,
+            originalIndex
+        })).sort((a, b) => new Date(a.date) - new Date(b.date));
         
-        list.innerHTML = sortedRecords.map((record, index) => {
+        list.innerHTML = sortedRecords.map((item) => {
+            const record = item;
+            const originalIndex = item.originalIndex;
             const dateParts = record.date.split('-');
             const dateStr = `${dateParts[1]}/${dateParts[2]}`;
             const isVideo = videoStaff.includes(record.staff) || record.staff === specialStaff;
@@ -1843,7 +1882,7 @@ if(s.rest.length || dayLeaves.length) {
                         ${coverDisplay}
                     </div>
                     <div class="leave-record-actions">
-                        <button class="btn-revoke" onclick="revokeLeave(${index})">撤销</button>
+                        <button class="btn-revoke" onclick="revokeLeave(${originalIndex})">撤销</button>
                     </div>
                 </div>
             `;
@@ -1981,19 +2020,19 @@ if(s.rest.length || dayLeaves.length) {
         renderTodaySchedule();
         
         // 初始化月份视图
-        renderMonth(currentYear, currentMonth);
-        
-        // 渲染请假记录列表
-        renderLeaveRecords();
-        
-        // 更新简单统计
-        updateSimpleStats();
-        
-        // 添加弹窗点击关闭事件
-        document.getElementById('leaveModal').addEventListener('click', function(e) {
-            if (e.target === this) closeLeaveModal();
-        });
-    }
+    renderMonth(currentYear, currentMonth);
+    
+    // 渲染请假记录列表
+    renderLeaveRecords();
+    
+    // 更新简单统计
+    updateSimpleStats();
+    
+    // 添加弹窗点击关闭事件
+    document.getElementById('leaveModal').addEventListener('click', function(e) {
+        if (e.target === this) closeLeaveModal();
+    });
+}
 
     document.getElementById("prevMonthBtn").onclick = () => {
         // 锁定在2026年4月，不允许翻阅到之前的月份
@@ -2009,8 +2048,7 @@ if(s.rest.length || dayLeaves.length) {
         update();
     };
 
-    // 页面加载完成后初始化
-    document.addEventListener('DOMContentLoaded', init);
+
 </script>
 </body>
 </html>
