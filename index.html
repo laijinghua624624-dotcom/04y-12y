@@ -1447,7 +1447,7 @@
                 standbyHtml = `<div class="staff-list">${vStand} ${pStand}</div>`;
             } else standbyHtml = '<span style="color:#9ca3af;">—</span>';
             let restHtml = '';
-if(s.rest.length || dayLeaves.length) {
+            if(s.rest.length || dayLeaves.length) {
                 // 获取当天请假的人员名单
                 const leaveStaffNames = dayLeaves.map(l => l.staff);
                 // 获取当天顶班的人员名单
