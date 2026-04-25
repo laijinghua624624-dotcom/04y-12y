@@ -2304,15 +2304,29 @@ if(s.rest.length || dayLeaves.length) {
         
         // 统计每天的排班
         for (let day = 1; day <= daysInMonth; day++) {
+            // 跳过2026年4月1日到13日
+            if (currentYear === 2026 && currentMonth === 3 && day >= 1 && day <= 13) {
+                continue;
+            }
+            
             const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             const curDate = new Date(currentYear, currentMonth, day);
             const schedule = getDailySchedule(curDate);
             
             allStaff.forEach(staff => {
-                if (schedule.white.includes(staff) || schedule.night.includes(staff) || schedule.standby.includes(staff)) {
+                // 检查视频组和特殊员工
+                if (schedule.white.includes(staff) || schedule.standby.includes(staff)) {
                     stats[staff].work++;
                 } else if (schedule.rest.includes(staff)) {
                     stats[staff].rest++;
+                }
+                
+                // 检查夜班（需要处理平面组的特殊格式，如"钟豪昌|拍"）
+                const isInNight = schedule.night.some(item => {
+                    return item === staff || item.startsWith(staff + '|');
+                });
+                if (isInNight) {
+                    stats[staff].work++;
                 }
             });
         }
