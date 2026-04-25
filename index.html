@@ -543,7 +543,91 @@
             border-left: 4px solid #f59e0b;
         }
         
+        /* 画中画弹窗样式 */
+        .pip-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 480px;
+            height: 270px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            z-index: 9999;
+            overflow: hidden;
+            cursor: move;
+            display: none;
+        }
+        .pip-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        .pip-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: white;
+        }
+        .pip-controls {
+            display: flex;
+            gap: 8px;
+        }
+        .pip-btn {
+            width: 24px;
+            height: 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: white;
+            background: rgba(255, 255, 255, 0.2);
+            transition: all 0.2s;
+        }
+        .pip-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .pip-content {
+            padding: 16px;
+            color: white;
+            height: calc(100% - 40px);
+            overflow: auto;
+        }
+        .pip-time {
+            font-size: 0.8rem;
+            opacity: 0.9;
+            margin-bottom: 12px;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+        .pip-schedule {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+        .pip-item {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            padding: 8px 12px;
+            backdrop-filter: blur(10px);
+        }
+        .pip-item-label {
+            font-size: 0.65rem;
+            opacity: 0.8;
+            margin-bottom: 4px;
+        }
+        .pip-item-value {
+            font-size: 0.75rem;
+            font-weight: 600;
+            line-height: 1.4;
+        }
+        
 
+        
         /* 简单员工统计 */
         .staff-stats-simple {
             background: white;
@@ -938,7 +1022,10 @@
                 </div>
                 <div class="today-title">📅 今日排班详情</div>
             </div>
-            <button class="today-btn" onclick="openLeaveModal()">➕ 请假&调休</button>
+            <div style="display: flex; gap: 8px;">
+                <button class="today-btn" onclick="openSchedulePopup()">📺 新窗口</button>
+                <button class="today-btn" onclick="openLeaveModal()">➕ 请假&调休</button>
+            </div>
         </div>
         <div class="today-content" id="todayScheduleContent">
             <div class="today-item">
@@ -1079,6 +1166,46 @@
         <div class="modal-footer">
             <button class="btn-cancel" onclick="closeLeaveModal()">取消</button>
             <button class="btn-submit" onclick="submitLeaveRequest()" id="submitLeaveBtn">确定请假</button>
+        </div>
+    </div>
+</div>
+
+<!-- 画中画弹窗 -->
+<div class="pip-container" id="pipContainer">
+    <div class="pip-header">
+        <div class="pip-title">📅 今日排班详情</div>
+        <div class="pip-controls">
+            <button class="pip-btn" onclick="togglePip()">🔄</button>
+            <button class="pip-btn" onclick="closePip()">×</button>
+        </div>
+    </div>
+    <div class="pip-content">
+        <div class="pip-time" id="pipTime"></div>
+        <div class="pip-schedule" id="pipSchedule">
+            <div class="pip-item">
+                <div class="pip-item-label">🌞 白班</div>
+                <div class="pip-item-value" id="pipWhite"></div>
+            </div>
+            <div class="pip-item">
+                <div class="pip-item-label">🌙 夜班</div>
+                <div class="pip-item-value" id="pipNight"></div>
+            </div>
+            <div class="pip-item">
+                <div class="pip-item-label">⚡ 待命</div>
+                <div class="pip-item-value" id="pipStandby"></div>
+            </div>
+            <div class="pip-item">
+                <div class="pip-item-label">😴 休息&请假</div>
+                <div class="pip-item-value" id="pipRest"></div>
+            </div>
+            <div class="pip-item">
+                <div class="pip-item-label">🏥 请假</div>
+                <div class="pip-item-value" id="pipLeave"></div>
+            </div>
+            <div class="pip-item">
+                <div class="pip-item-label">🔄 顶班情况</div>
+                <div class="pip-item-value" id="pipCover"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -1429,6 +1556,9 @@ if(s.rest.length || dayLeaves.length) {
       }).catch((error) => {
         console.error('❌ Firebase 保存失败:', error);
       });
+      
+      // 同时保存到localStorage，供新窗口使用
+      localStorage.setItem('leaveRecords', JSON.stringify(leaveRecords));
     }
 
     // 添加请假记录
@@ -1444,27 +1574,38 @@ if(s.rest.length || dayLeaves.length) {
     }
 
     // 初始化时从 Firebase 加载数据
-    loadLeaveRecordsFromFirebase();
+    try {
+        loadLeaveRecordsFromFirebase();
+    } catch (e) {
+        console.error('Firebase 加载失败:', e);
+    }
 
     // ----------------------------- 实时时间更新 ---------------------------------
     function updateCurrentTime() {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        const weekDays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
-        const weekDay = weekDays[now.getDay()];
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        const seconds = String(now.getSeconds()).padStart(2, '0');
-        
-        document.getElementById('currentTime').innerHTML = `
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12 6 12 12 16 14"/>
-            </svg>
-            <span>${year}/${month}/${day}  ${weekDay}  ${hours}:${minutes}:${seconds}</span>
-        `;
+        try {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const weekDays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+            const weekDay = weekDays[now.getDay()];
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            
+            const timeElement = document.getElementById('currentTime');
+            if (timeElement) {
+                timeElement.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <span>${year}/${month}/${day}  ${weekDay}  ${hours}:${minutes}:${seconds}</span>
+                `;
+            }
+        } catch (e) {
+            console.error('时间更新错误:', e);
+        }
     }
 
     // ----------------------------- 今日排班渲染 ---------------------------------
@@ -1781,6 +1922,7 @@ if(s.rest.length || dayLeaves.length) {
             closeLeaveModal();
             renderTodaySchedule();
             renderMonth(currentYear, currentMonth);
+            renderPipSchedule();
         }, 2000);
     }
     
@@ -1916,8 +2058,235 @@ if(s.rest.length || dayLeaves.length) {
         renderLeaveRecords();
         renderTodaySchedule();
         renderMonth(currentYear, currentMonth);
+        renderPipSchedule();
         
         alert(`✅ 已成功撤销 ${record.staff} 在 ${record.date} 的请假申请，排班已恢复。`);
+    }
+    
+    // ----------------------------- 画中画功能 ---------------------------------
+    let isDragging = false;
+    let startX, startY, initialLeft, initialTop;
+    
+    // 打开画中画
+    function openPip() {
+        const pipContainer = document.getElementById('pipContainer');
+        pipContainer.style.display = 'block';
+        renderPipSchedule();
+        updatePipTime();
+    }
+    
+    // 关闭画中画
+    function closePip() {
+        const pipContainer = document.getElementById('pipContainer');
+        pipContainer.style.display = 'none';
+    }
+    
+    // 切换画中画显示
+    function togglePip() {
+        const pipContainer = document.getElementById('pipContainer');
+        if (pipContainer.style.display === 'block') {
+            closePip();
+        } else {
+            openPip();
+        }
+    }
+    
+    // 渲染画中画排班信息
+    function renderPipSchedule() {
+        const today = new Date();
+        const schedule = getDailySchedule(today);
+        
+        // 获取今日请假信息
+        const todayStr = formatDate(today);
+        const todayLeaves = leaveRecords.filter(l => l.date === todayStr);
+        
+        // 渲染白班
+        const whiteHtml = schedule.white.length > 0 
+            ? schedule.white.map(s => `<span class="video-icon">🎥${s}</span>`).join(' ') 
+            : '<span class="empty-state">—</span>';
+        document.getElementById('pipWhite').innerHTML = whiteHtml;
+        
+        // 渲染夜班
+        const nightHtml = schedule.night.length > 0 
+            ? schedule.night.map(s => {
+                const isVideo = videoStaff.includes(s) || s === specialStaff;
+                const icon = isVideo ? '🎥' : '📷';
+                return `<span>${icon}${s}</span>`;
+            }).join(' ') 
+            : '<span class="empty-state">—</span>';
+        document.getElementById('pipNight').innerHTML = nightHtml;
+        
+        // 渲染待命
+        const standbyHtml = schedule.standby.length > 0 
+            ? schedule.standby.map(s => {
+                const isVideo = videoStaff.includes(s) || s === specialStaff;
+                const icon = isVideo ? '🎥' : '📷';
+                return `<span>${icon}${s}</span>`;
+            }).join(' ') 
+            : '<span class="empty-state">—</span>';
+        document.getElementById('pipStandby').innerHTML = standbyHtml;
+        
+        // 渲染正常休息
+        const restHtml = schedule.rest.length > 0 
+            ? schedule.rest.map(s => {
+                const isVideo = videoStaff.includes(s) || s === specialStaff;
+                const icon = isVideo ? '🎥' : '📷';
+                return `<span class="rest-icon">${icon}${s}</span>`;
+            }).join(' ') 
+            : '<span class="empty-state">—</span>';
+        document.getElementById('pipRest').innerHTML = restHtml;
+        
+        // 渲染请假
+        if (todayLeaves.length > 0) {
+            const leaveHtml = todayLeaves.map(l => `<span class="leave-icon">🏥${l.staff}</span>`).join(' ');
+            document.getElementById('pipLeave').innerHTML = leaveHtml;
+        } else {
+            document.getElementById('pipLeave').innerHTML = '<span class="empty-state">无</span>';
+        }
+        
+        // 渲染顶班
+        if (todayLeaves.length > 0) {
+            const coverHtml = todayLeaves.flatMap(l => {
+                if (!l.coverStaff || l.coverStaff.length === 0) return [];
+                return l.coverStaff.map(cover => {
+                    // 格式：伍（顶）冯
+                    const shortCover = cover.substring(0, 1);
+                    const shortOriginal = l.staff.substring(0, 1);
+                    return `<span class="cover-icon">${shortCover}（顶）${shortOriginal}</span>`;
+                });
+            }).join(' ');
+            if (coverHtml) {
+                document.getElementById('pipCover').innerHTML = coverHtml;
+            } else {
+                document.getElementById('pipCover').innerHTML = '<span class="empty-state">无</span>';
+            }
+        } else {
+            document.getElementById('pipCover').innerHTML = '<span class="empty-state">无</span>';
+        }
+    }
+    
+    // 更新画中画时间
+    function updatePipTime() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const weekDays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+        const weekDay = weekDays[now.getDay()];
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        
+        document.getElementById('pipTime').textContent = 
+            `${year}/${month}/${day}  ${weekDay}  ${hours}:${minutes}:${seconds}`;
+    }
+    
+    // 实现拖动功能
+    function initPipDrag() {
+        const pipContainer = document.getElementById('pipContainer');
+        
+        pipContainer.addEventListener('mousedown', function(e) {
+            // 只在点击头部时允许拖动
+            if (e.target.closest('.pip-header')) {
+                e.preventDefault();
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                
+                // 获取当前位置
+                const rect = pipContainer.getBoundingClientRect();
+                initialLeft = rect.left;
+                initialTop = rect.top;
+                
+                // 改变鼠标样式
+                pipContainer.style.cursor = 'grabbing';
+            }
+        });
+        
+        document.addEventListener('mousemove', function(e) {
+            if (isDragging) {
+                e.preventDefault();
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+                
+                // 更新位置
+                const pip = document.getElementById('pipContainer');
+                if (pip) {
+                    pip.style.left = (initialLeft + deltaX) + 'px';
+                    pip.style.top = (initialTop + deltaY) + 'px';
+                    // 移除right属性，使用left
+                    pip.style.right = 'auto';
+                }
+            }
+        });
+        
+        document.addEventListener('mouseup', function() {
+            isDragging = false;
+            const pip = document.getElementById('pipContainer');
+            if (pip) {
+                pip.style.cursor = 'move';
+            }
+        });
+        
+        // 添加触摸事件支持
+        pipContainer.addEventListener('touchstart', function(e) {
+            if (e.target.closest('.pip-header')) {
+                e.preventDefault();
+                isDragging = true;
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+                
+                const rect = pipContainer.getBoundingClientRect();
+                initialLeft = rect.left;
+                initialTop = rect.top;
+                
+                pipContainer.style.cursor = 'grabbing';
+            }
+        });
+        
+        document.addEventListener('touchmove', function(e) {
+            if (isDragging) {
+                e.preventDefault();
+                const deltaX = e.touches[0].clientX - startX;
+                const deltaY = e.touches[0].clientY - startY;
+                
+                const pip = document.getElementById('pipContainer');
+                if (pip) {
+                    pip.style.left = (initialLeft + deltaX) + 'px';
+                    pip.style.top = (initialTop + deltaY) + 'px';
+                    pip.style.right = 'auto';
+                }
+            }
+        });
+        
+        document.addEventListener('touchend', function() {
+            isDragging = false;
+            const pip = document.getElementById('pipContainer');
+            if (pip) {
+                pip.style.cursor = 'move';
+            }
+        });
+    }
+    
+    // 打开排班详情新窗口
+    function openSchedulePopup() {
+        // 打开新标签页，指向排班详情页面
+        window.open('schedule-popup.html', '_blank', 'width=500,height=600,left=100,top=100');
+    }
+    
+    // 初始化画中画功能
+    function initPip() {
+        initPipDrag();
+        
+        // 每秒钟更新时间
+        setInterval(() => {
+            updatePipTime();
+        }, 1000);
+        
+        // 每30秒更新一次排班信息
+        setInterval(() => {
+            renderPipSchedule();
+        }, 30000);
     }
     
     // ----------------------------- 简单员工统计 ---------------------------------
@@ -2017,19 +2386,22 @@ if(s.rest.length || dayLeaves.length) {
         renderTodaySchedule();
         
         // 初始化月份视图
-    renderMonth(currentYear, currentMonth);
-    
-    // 渲染请假记录列表
-    renderLeaveRecords();
-    
-    // 更新简单统计
-    updateSimpleStats();
-    
-    // 添加弹窗点击关闭事件
-    document.getElementById('leaveModal').addEventListener('click', function(e) {
-        if (e.target === this) closeLeaveModal();
-    });
-}
+        renderMonth(currentYear, currentMonth);
+        
+        // 渲染请假记录列表
+        renderLeaveRecords();
+        
+        // 更新简单统计
+        updateSimpleStats();
+        
+        // 初始化画中画功能
+        initPip();
+        
+        // 添加弹窗点击关闭事件
+        document.getElementById('leaveModal').addEventListener('click', function(e) {
+            if (e.target === this) closeLeaveModal();
+        });
+    }
 
     document.getElementById("prevMonthBtn").onclick = () => {
         // 锁定在2026年4月，不允许翻阅到之前的月份
