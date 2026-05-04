@@ -2030,14 +2030,25 @@
     
     // 撤销请假
     function revokeLeave(index) {
+        const record = leaveRecords[index];
+        
+        // 检查请假记录是否超过5天
+        const leaveDate = new Date(record.date);
+        const today = new Date();
+        const diffTime = Math.abs(today - leaveDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays > 5) {
+            alert('请假记录超过5天，不能删除');
+            return;
+        }
+        
         const password = prompt('请输入管理员密码以撤销请假：');
         
         if (password !== ADMIN_PASSWORD) {
             alert('❌ 管理员密码错误！');
             return;
         }
-        
-        const record = leaveRecords[index];
         
         // 恢复原始排班状态
         if (record.originalVideoAssignments) {
