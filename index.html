@@ -308,6 +308,7 @@
         .photo-icon { color: #f9a8d4; }
         .rest-icon { color: #fca5a5; }
         .leave-icon { color: #fbbf24; }
+        .leave-icon.business { color: #3b82f6; font-weight: 500; }
         .cover-icon { color: #34d399; }
         .empty-state {
             color: rgba(255, 255, 255, 0.5);
@@ -991,7 +992,6 @@
             <span>梁元科</span>
             <span>颜世才</span>
             <span>伍鹏宁</span>
-            <span>资凡</span>
         </div>
         <div class="group">
             <h3>📷 平面组</h3>
@@ -1064,6 +1064,12 @@
                     <span class="empty-state">无</span>
                 </div>
             </div>
+            <div class="today-item">
+                <div class="today-item-label">✈️ 出差</div>
+                <div class="today-item-value" id="todayBusiness">
+                    <span class="empty-state">无</span>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1106,66 +1112,170 @@
             <div class="modal-title">📝 申请临时请假&调班</div>
             <button class="modal-close" onclick="closeLeaveModal()">×</button>
         </div>
-        
-        <div id="notificationArea"></div>
-        
-        <div class="form-group">
-            <label for="leaveDate">请假日期</label>
-            <input type="date" id="leaveDate" required>
+
+        <!-- Tab 切换 -->
+        <div style="display: flex; border-bottom: 1px solid #e5e7eb; margin-bottom: 16px;">
+            <button id="tabApply" class="leave-tab active" onclick="switchLeaveTab('apply')" style="flex: 1; padding: 10px 16px; border: none; background: transparent; cursor: pointer; font-size: 0.9rem; font-weight: 600; color: #6b7280; border-bottom: 3px solid transparent; transition: all 0.2s;">➕ 申请请假</button>
+            <button id="tabBusiness" class="leave-tab" onclick="switchLeaveTab('business')" style="flex: 1; padding: 10px 16px; border: none; background: transparent; cursor: pointer; font-size: 0.9rem; font-weight: 600; color: #6b7280; border-bottom: 3px solid transparent; transition: all 0.2s;">✈️ 出差设置</button>
+            <button id="tabCancel" class="leave-tab" onclick="switchLeaveTab('cancel')" style="flex: 1; padding: 10px 16px; border: none; background: transparent; cursor: pointer; font-size: 0.9rem; font-weight: 600; color: #6b7280; border-bottom: 3px solid transparent; transition: all 0.2s;">↩️ 取消请假</button>
         </div>
-        
-        <div class="form-group">
-            <label for="leaveStaff">请假人员</label>
-            <select id="leaveStaff" required>
-                <option value="">请选择请假人员</option>
-                <optgroup label="视频组">
-                    <option value="赖京华">🎥 赖京华</option>
-                    <option value="冯健材">🎥 冯健材</option>
-                    <option value="梁元科">🎥 梁元科</option>
-                    <option value="颜世才">🎥 颜世才</option>
-                    <option value="伍鹏宁">🎥 伍鹏宁</option>
-                    <option value="资凡">🎥 资凡</option>
-                </optgroup>
-                <optgroup label="平面组">
-                    <option value="钟豪昌">📷 钟豪昌</option>
-                    <option value="郑楚君">📷 郑楚君</option>
-                </optgroup>
-            </select>
-        </div>
-        
-        <div class="form-group">
-            <label for="leaveReason">请假原因</label>
-            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                <button type="button" class="btn-quick" onclick="setLeaveReason('请假')" style="padding: 6px 14px; background: #fee2e2; color: #dc2626; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer;">🏥 请假</button>
-                <button type="button" class="btn-quick" onclick="setLeaveReason('调班')" style="padding: 6px 14px; background: #dbeafe; color: #2563eb; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer;">🔄 调班</button>
-                <button type="button" class="btn-quick" onclick="setLeaveReason('事假')" style="padding: 6px 14px; background: #fef3c7; color: #d97706; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer;">📋 事假</button>
-                <button type="button" class="btn-quick" onclick="setLeaveReason('病假')" style="padding: 6px 14px; background: #d1fae5; color: #059669; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer;">💊 病假</button>
+
+        <!-- 申请请假区域 -->
+        <div id="applyLeaveArea">
+            <div id="notificationArea"></div>
+
+            <div class="form-group">
+                <label for="leaveDate">请假日期</label>
+                <input type="date" id="leaveDate" required>
             </div>
-            <textarea id="leaveReason" placeholder="请输入请假原因..."></textarea>
-        </div>
-        
-        <div class="form-group">
-            <label>顶班方式</label>
-            <div style="display: flex; gap: 12px;">
-                <label class="radio-option">
-                    <input type="radio" name="coverMode" value="auto" checked>
-                    <span>🔄 系统自动分配</span>
-                </label>
-                <label class="radio-option">
-                    <input type="radio" name="coverMode" value="custom">
-                    <span>✏️ 自定义选择</span>
-                </label>
+
+            <div class="form-group">
+                <label for="leaveStaff">请假人员</label>
+                <select id="leaveStaff" required>
+                    <option value="">请选择请假人员</option>
+                    <optgroup label="视频组">
+                        <option value="赖京华">🎥 赖京华</option>
+                        <option value="冯健材">🎥 冯健材</option>
+                        <option value="梁元科">🎥 梁元科</option>
+                        <option value="颜世才">🎥 颜世才</option>
+                        <option value="伍鹏宁">🎥 伍鹏宁</option>
+                    </optgroup>
+                    <optgroup label="平面组">
+                        <option value="钟豪昌">📷 钟豪昌</option>
+                        <option value="郑楚君">📷 郑楚君</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="leaveReason">请假原因</label>
+                <div style="display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
+                    <button type="button" class="btn-quick" onclick="setLeaveReason('请假')" style="padding: 6px 14px; background: #fee2e2; color: #dc2626; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer;">🏥 请假</button>
+                    <button type="button" class="btn-quick" onclick="setLeaveReason('调班')" style="padding: 6px 14px; background: #dbeafe; color: #2563eb; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer;">🔄 调班</button>
+                    <button type="button" class="btn-quick" onclick="setLeaveReason('事假')" style="padding: 6px 14px; background: #fef3c7; color: #d97706; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer;">📋 事假</button>
+                    <button type="button" class="btn-quick" onclick="setLeaveReason('病假')" style="padding: 6px 14px; background: #d1fae5; color: #059669; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer;">💊 病假</button>
+                    <button type="button" class="btn-quick" onclick="setLeaveReason('育儿')" style="padding: 6px 14px; background: #ede9fe; color: #7c3aed; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 500; cursor: pointer;">👶 育儿</button>
+                </div>
+                <textarea id="leaveReason" placeholder="请输入请假原因..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>顶班方式</label>
+                <div style="display: flex; gap: 12px;">
+                    <label class="radio-option">
+                        <input type="radio" name="coverMode" value="auto" checked>
+                        <span>🔄 系统自动分配</span>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="coverMode" value="custom">
+                        <span>✏️ 自定义选择</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>顶班人员（可多选）</label>
+                <div class="staff-grid" id="coverStaffGrid"></div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeLeaveModal()">取消</button>
+                <button class="btn-submit" onclick="submitLeaveRequest()" id="submitLeaveBtn">确定请假</button>
             </div>
         </div>
-        
-        <div class="form-group">
-            <label>顶班人员（可多选）</label>
-            <div class="staff-grid" id="coverStaffGrid"></div>
+
+        <!-- 出差设置区域 -->
+        <div id="businessLeaveArea" style="display: none;">
+            <div id="businessNotificationArea"></div>
+
+            <div class="form-group">
+                <label for="businessLeaveStartDate">出差开始日期</label>
+                <input type="date" id="businessLeaveStartDate" required>
+            </div>
+
+            <div class="form-group">
+                <label for="businessLeaveEndDate">出差结束日期</label>
+                <input type="date" id="businessLeaveEndDate" required>
+                <div style="font-size: 0.75rem; color: #6b7280; margin-top: 4px;">开始日期与结束日期相同表示单日出差</div>
+            </div>
+
+            <div class="form-group">
+                <label for="businessLeaveStaff">出差人员</label>
+                <select id="businessLeaveStaff" required>
+                    <option value="">请选择出差人员</option>
+                    <optgroup label="视频组">
+                        <option value="赖京华">🎥 赖京华</option>
+                        <option value="冯健材">🎥 冯健材</option>
+                        <option value="梁元科">🎥 梁元科</option>
+                        <option value="颜世才">🎥 颜世才</option>
+                        <option value="伍鹏宁">🎥 伍鹏宁</option>
+                    </optgroup>
+                    <optgroup label="平面组">
+                        <option value="钟豪昌">📷 钟豪昌</option>
+                        <option value="郑楚君">📷 郑楚君</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="businessLeaveReason">出差事由（可选）</label>
+                <textarea id="businessLeaveReason" placeholder="例如：北京出差 / 客户拜访 …"></textarea>
+            </div>
+
+            <!-- 查询结果显示 -->
+            <div id="businessLeaveResult" style="margin: 16px 0; padding: 12px 16px; border-radius: 10px; background: #f8fafc; border: 1px solid #e2e8f0; font-size: 0.85rem; color: #475569; display: none;"></div>
+
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeLeaveModal()">关闭</button>
+                <button class="btn-submit" onclick="submitBusinessLeave()" id="submitBusinessLeaveBtn" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);">确认设置出差</button>
+            </div>
         </div>
-        
-        <div class="modal-footer">
-            <button class="btn-cancel" onclick="closeLeaveModal()">取消</button>
-            <button class="btn-submit" onclick="submitLeaveRequest()" id="submitLeaveBtn">确定请假</button>
+
+        <!-- 取消请假区域 -->
+        <div id="cancelLeaveArea" style="display: none;">
+            <div id="cancelNotificationArea"></div>
+
+            <div class="form-group">
+                <label for="cancelLeaveDate">取消请假日期</label>
+                <input type="date" id="cancelLeaveDate" required>
+            </div>
+
+            <div class="form-group">
+                <label for="cancelLeaveStaff">取消请假人员</label>
+                <select id="cancelLeaveStaff" required>
+                    <option value="">请选择要取消请假的人员</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>安排到</label>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <label class="radio-option">
+                        <input type="radio" name="assignTarget" value="B">
+                        <span>☀️ 白班</span>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="assignTarget" value="N">
+                        <span>🌙 夜班</span>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="assignTarget" value="S" checked>
+                        <span>⏰ 待命</span>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="assignTarget" value="V">
+                        <span>✈️ 出差</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 查询结果显示 -->
+            <div id="cancelLeaveResult" style="margin: 16px 0; padding: 12px 16px; border-radius: 10px; background: #f8fafc; border: 1px solid #e2e8f0; font-size: 0.85rem; color: #475569; display: none;"></div>
+
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeLeaveModal()">关闭</button>
+                <button class="btn-submit" onclick="submitCancelLeave()" id="submitCancelLeaveBtn" style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);">确认取消请假</button>
+            </div>
         </div>
     </div>
 </div>
@@ -1215,25 +1325,24 @@
 <script>
     // ----------------------------- 视频组配置 ---------------------------------
     const videoStaff = ["赖京华", "冯健材", "梁元科", "颜世才", "伍鹏宁"];
-    const specialStaff = "资凡";
     
     function buildVideoCycle() {
-        const allVideo = [...videoStaff, specialStaff];
+        const allVideo = [...videoStaff];
         const rawPattern = [
-            {type:"常规", assign:["S","N","N","B","R","N"]}, {type:"常规", assign:["N","S","R","N","B","N"]},
-            {type:"常规", assign:["R","N","B","S","N","N"]}, {type:"常规", assign:["N","B","N","R","S","N"]},
-            {type:"值班", assign:["V","R","R","V","R","V"]}, {type:"值班", assign:["R","V","V","R","R","V"]},
-            {type:"常规", assign:["B","R","S","N","N","N"]}, {type:"常规", assign:["N","B","N","S","R","N"]},
-            {type:"常规", assign:["S","N","R","B","N","N"]}, {type:"常规", assign:["N","R","B","N","S","N"]},
-            {type:"常规", assign:["S","N","N","R","B","N"]}, {type:"值班", assign:["V","R","R","R","V","V"]},
-            {type:"值班", assign:["R","R","V","V","R","V"]}, {type:"常规", assign:["N","B","S","N","R","N"]},
-            {type:"常规", assign:["B","R","N","S","N","N"]}, {type:"常规", assign:["N","N","R","B","S","N"]},
-            {type:"常规", assign:["S","R","N","N","B","N"]}, {type:"常规", assign:["R","N","B","S","N","N"]},
-            {type:"值班", assign:["R","V","R","R","V","V"]}, {type:"值班", assign:["V","R","V","R","R","V"]},
-            {type:"常规", assign:["N","B","N","R","S","N"]}, {type:"常规", assign:["B","R","S","N","N","N"]},
-            {type:"常规", assign:["S","N","N","B","R","N"]}, {type:"常规", assign:["N","S","R","N","B","N"]},
-            {type:"常规", assign:["R","N","B","S","N","N"]}, {type:"值班", assign:["R","R","R","V","V","V"]},
-            {type:"值班", assign:["V","V","R","R","R","V"]}, {type:"常规", assign:["B","R","N","N","S","N"]}
+            {type:"常规", assign:["S","N","N","B","R"]}, {type:"常规", assign:["N","S","R","N","B"]},
+            {type:"常规", assign:["R","N","B","S","N"]}, {type:"常规", assign:["N","B","N","R","S"]},
+            {type:"值班", assign:["V","R","R","V","R"]}, {type:"值班", assign:["R","V","V","R","R"]},
+            {type:"常规", assign:["B","R","S","N","N"]}, {type:"常规", assign:["N","B","N","S","R"]},
+            {type:"常规", assign:["S","N","R","B","N"]}, {type:"常规", assign:["N","R","B","N","S"]},
+            {type:"常规", assign:["S","N","N","R","B"]}, {type:"值班", assign:["V","R","R","R","V"]},
+            {type:"值班", assign:["R","R","V","V","R"]}, {type:"常规", assign:["N","B","S","N","R"]},
+            {type:"常规", assign:["B","R","N","S","N"]}, {type:"常规", assign:["N","N","R","B","S"]},
+            {type:"常规", assign:["S","R","N","N","B"]}, {type:"常规", assign:["R","N","B","S","N"]},
+            {type:"值班", assign:["R","V","R","R","V"]}, {type:"值班", assign:["V","R","V","R","R"]},
+            {type:"常规", assign:["N","B","N","R","S"]}, {type:"常规", assign:["B","R","S","N","N"]},
+            {type:"常规", assign:["S","N","N","B","R"]}, {type:"常规", assign:["N","S","R","N","B"]},
+            {type:"常规", assign:["R","N","B","S","N"]}, {type:"值班", assign:["R","R","R","V","V"]},
+            {type:"值班", assign:["V","V","R","R","R"]}, {type:"常规", assign:["B","R","N","N","S"]}
         ];
         return rawPattern.map(pat => ({
             type: pat.type,
@@ -1336,31 +1445,40 @@
         const graphicDay = GRAPHIC_CYCLE[idx];
         const weekDay = date.getDay();
         const isWeekend = (weekDay === 0 || weekDay === 1);
-        
-        let videoWhite = null, videoNight = [], videoStandby = [], videoRest = [];
-        for(let staff of [...videoStaff, specialStaff]) {
+
+        let videoWhite = null, videoNight = [], videoStandby = [], videoRest = [], videoBusiness = [];
+        for(let staff of videoStaff) {
             const code = videoDay.assignments[staff];
             if(code === 'B') videoWhite = staff;
-            else if(code === 'N' || code === 'V') videoNight.push(staff);
+            else if(code === 'N') videoNight.push(staff);
+            else if(code === 'V') { videoNight.push(staff); videoBusiness.push(staff); }
             else if(code === 'S') videoStandby.push(staff);
             else if(code === 'R') videoRest.push(staff);
         }
-        
+
         let photoNight = [], photoStandby = [], photoRest = [];
+        let graphicStatus = {}; // 保存平面组状态用于显示 { 钟豪昌: "拍"/"p"/"休", 郑楚君: "拍"/"p"/"休" }
         const zhong = graphicDay.zhong, zheng = graphicDay.zheng;
-        // 平面组无论是拍还是p，都放在夜班·值班列
-        if(zhong === "拍" || zhong === "p") photoNight.push("钟豪昌|" + zhong);
+        graphicStatus['钟豪昌'] = zhong;
+        graphicStatus['郑楚君'] = zheng;
+        // 平面组：拍/p 显示在夜班列，休显示在休息列
+        if(zhong === "拍" || zhong === "p") photoNight.push("钟豪昌");
         else if(zhong === "休") photoRest.push("钟豪昌");
-        
-        if(zheng === "拍" || zheng === "p") photoNight.push("郑楚君|" + zheng);
+        if(zheng === "拍" || zheng === "p") photoNight.push("郑楚君");
         else if(zheng === "休") photoRest.push("郑楚君");
-        
+
         let white = (videoWhite && !isWeekend) ? [videoWhite] : [];
         let night = [...videoNight, ...photoNight];
         let standby = [...videoStandby, ...photoStandby];
         let rest = [...videoRest, ...photoRest];
-        
-        return { white, night, standby, rest, overtimeNote: graphicDay.overtimeNote, isWeekend };
+
+        return {
+            white, night, standby, rest,
+            videoBusiness,
+            graphicStatus, // 平面组状态，用于渲染时显示 拍/p 后缀
+            graphicOvertime: graphicDay.overtimeNote,
+            isWeekend
+        };
     }
     
     function renderMonth(year, month) {
@@ -1415,26 +1533,29 @@
             }).join('')}</div>` : '<span style="color:#9ca3af;">—</span>';
             let nightHtml = '';
             if(s.night.length) {
-                const vNight = s.night.filter(n=>videoStaff.includes(n)||n===specialStaff).map(v=>{
+                const vNight = s.night.filter(n=>videoStaff.includes(n)).map(v=>{
                     const isCover = coverStaffNames.includes(v);
+                    const isBiz = s.videoBusiness && s.videoBusiness.includes(v);
                     const coverBadge = isCover ? ' 🔄' : '';
-                    return `<span class="staff-tag video">🎥 ${v}${coverBadge}</span>`;
+                    const bizBadge = isBiz ? ' ✈️' : '';
+                    return `<span class="staff-tag video">🎥 ${v}${coverBadge}${bizBadge}</span>`;
                 }).join('');
-                const pNight = s.night.filter(n=>n.includes('钟豪昌')||n.includes('郑楚君')).map(p => {
-                    const parts = p.split('|');
-                    const name = parts[0];
-                    const status = parts[1] || '拍';
+                // 平面组在夜班列显示（用 graphicStatus 取状态）
+                const pNight = s.night.filter(n=>n === '钟豪昌' || n === '郑楚君').map(name => {
+                    const status = s.graphicStatus ? s.graphicStatus[name] : '拍';
                     const icon = status === 'p' ? '✏️' : '📷';
                     const suffix = status === 'p' ? '(p)' : '';
                     const isCover = coverStaffNames.includes(name);
                     const coverBadge = isCover ? ' 🔄' : '';
-                    return `<span class="staff-tag photo">${icon} ${name}${suffix}${coverBadge}</span>`;
+                    const isBiz = s.graphicOvertime && s.graphicOvertime.includes('出差');
+                    const bizBadge = isBiz ? ' ✈️' : '';
+                    return `<span class="staff-tag photo">${icon} ${name}${suffix}${coverBadge}${bizBadge}</span>`;
                 }).join('');
                 nightHtml = `<div class="staff-list">${vNight} ${pNight}</div>`;
             } else nightHtml = '<span style="color:#9ca3af;">—</span>';
             let standbyHtml = '';
             if(s.standby.length) {
-                const vStand = s.standby.filter(n=>videoStaff.includes(n)||n===specialStaff).map(v=>{
+                const vStand = s.standby.filter(n=>videoStaff.includes(n)).map(v=>{
                     const isCover = coverStaffNames.includes(v);
                     const coverBadge = isCover ? ' 🔄' : '';
                     return `<span class="staff-tag video">🎥 ${v}${coverBadge}</span>`;
@@ -1448,19 +1569,34 @@
             } else standbyHtml = '<span style="color:#9ca3af;">—</span>';
             let restHtml = '';
             if(s.rest.length || dayLeaves.length) {
-                // 获取当天请假的人员名单
-                const leaveStaffNames = dayLeaves.map(l => l.staff);
-                // 获取当天顶班的人员名单
-                const coverStaffNames = dayLeaves.flatMap(l => l.coverStaff || []);
+                // === 去重 + 过滤出差 ===
+                // 1. dayLeaves 过滤：出差记录（reason 包含"出差"）不显示在休息&请假列（已在夜班列显示 ✈️）
+                // 2. dayLeaves 去重：同一员工一天只显示一次
+                const uniqueLeaveStaff = {};
+                const filteredDayLeaves = dayLeaves
+                    .filter(l => !(l.reason === '出差' || (l.reason && l.reason.includes('出差'))))
+                    .filter(l => {
+                        if (uniqueLeaveStaff[l.staff]) return false;
+                        uniqueLeaveStaff[l.staff] = true;
+                        return true;
+                    });
+
+                // 获取当天请假的人员名单（去重后）
+                const leaveStaffNames = filteredDayLeaves.map(l => l.staff);
+                // 获取当天顶班的人员名单（去重）
+                const coverStaffNamesSet = new Set();
+                dayLeaves.forEach(l => (l.coverStaff || []).forEach(c => coverStaffNamesSet.add(c)));
+                const coverStaffNames = Array.from(coverStaffNamesSet);
                 // 过滤休息人员：如果已经在请假列表或顶班列表中，就不重复显示
                 const filteredRest = s.rest.filter(n => !leaveStaffNames.includes(n) && !coverStaffNames.includes(n));
-                
-                const vRest = filteredRest.filter(n=>videoStaff.includes(n)||n===specialStaff).map(v=>`<span class="staff-tag rest">🎥 ${v}</span>`).join('');
+
+                const vRest = filteredRest.filter(n=>videoStaff.includes(n)).map(v=>`<span class="staff-tag rest">🎥 ${v}</span>`).join('');
                 const pRest = filteredRest.filter(n=>n==="钟豪昌"||n==="郑楚君").map(p=>`<span class="staff-tag rest">📷 ${p}</span>`).join('');
-                const leaveHtml = dayLeaves.map(l => {
-                    const isVideo = videoStaff.includes(l.staff) || l.staff === specialStaff;
+                const leaveHtml = filteredDayLeaves.map(l => {
+                    const isVideo = videoStaff.includes(l.staff);
                     const icon = isVideo ? '🎥' : '📷';
-                    return `<span class="staff-tag rest" style="border-left: 3px solid #f59e0b;">🏥 ${icon} ${l.staff}</span>`;
+                    const leaveIcon = getLeaveIcon(l.reason);
+                    return `<span class="staff-tag rest" style="border-left: 3px solid #f59e0b;">${leaveIcon} ${icon} ${l.staff}</span>`;
                 }).join('');
                 restHtml = `<div class="staff-list">${vRest} ${pRest} ${leaveHtml}</div>`;
             } else restHtml = '<span style="color:#9ca3af;">—</span>';
@@ -1476,7 +1612,14 @@
         document.getElementById("currentMonthLabel").innerText = `${year}年${month+1}月`;
     }
     
-    let currentYear = 2026, currentMonth = 3;
+    // 基于网络时间初始化年月（不低于 2026 年 4 月，避免翻到系统起点之前）
+    const nowDate = new Date();
+    let currentYear = nowDate.getFullYear();
+    let currentMonth = nowDate.getMonth();
+    if (currentYear < 2026 || (currentYear === 2026 && currentMonth < 3)) {
+        currentYear = 2026;
+        currentMonth = 3;
+    }
 
     // ----------------------------- 请假记录存储 ---------------------------------
     let leaveRecords = [];  // 存储请假记录
@@ -1522,12 +1665,30 @@
           if (data) {
             leaveRecords = Object.values(data);
             console.log('📡 请假记录已更新:', leaveRecords);
-            
+
+            // === 自动迁移：赖京华指定日期的请假记录 reason 改为 育儿 ===
+            const updateDates = [
+              '2026-06-03', '2026-06-04', '2026-06-05', '2026-06-06',
+              '2026-06-09', '2026-06-10', '2026-06-11', '2026-06-12',
+              '2026-06-13', '2026-06-16'
+            ];
+            let migratedCount = 0;
+            leaveRecords.forEach(r => {
+              if (r.staff === '赖京华' && updateDates.includes(r.date) && r.reason !== '育儿') {
+                r.reason = '育儿';
+                migratedCount++;
+              }
+            });
+            if (migratedCount > 0) {
+              console.log(`✨ 已迁移 ${migratedCount} 条赖京华请假记录为『育儿』`);
+              saveLeaveRecordsToFirebase();
+            }
+
             // 重新应用所有请假记录的顶班逻辑
             leaveRecords.forEach(record => {
               updateScheduleOnLeave(record.date, record.staff, record.coverStaff || []);
             });
-            
+
             renderLeaveRecords();
             updateSimpleStats();
             renderTodaySchedule();
@@ -1626,7 +1787,7 @@
         // 渲染夜班
         const nightHtml = schedule.night.length > 0 
             ? schedule.night.map(s => {
-                const isVideo = videoStaff.includes(s) || s === specialStaff;
+                const isVideo = videoStaff.includes(s);
                 const icon = isVideo ? '🎥' : '📷';
                 return `<span>${icon}${s}</span>`;
             }).join(' ')
@@ -1636,7 +1797,7 @@
         // 渲染待命
         const standbyHtml = schedule.standby.length > 0 
             ? schedule.standby.map(s => {
-                const isVideo = videoStaff.includes(s) || s === specialStaff;
+                const isVideo = videoStaff.includes(s);
                 const icon = isVideo ? '🎥' : '📷';
                 return `<span>${icon}${s}</span>`;
             }).join(' ')
@@ -1646,19 +1807,44 @@
         // 渲染正常休息
         const restHtml = schedule.rest.length > 0 
             ? schedule.rest.map(s => {
-                const isVideo = videoStaff.includes(s) || s === specialStaff;
+                const isVideo = videoStaff.includes(s);
                 const icon = isVideo ? '🎥' : '📷';
                 return `<span class="rest-icon">${icon}${s}</span>`;
             }).join(' ')
             : '<span class="empty-state">—</span>';
         document.getElementById('todayRest').innerHTML = restHtml;
         
-        // 渲染请假
+        // 渲染请假（区分请假类型）
         if (todayLeaves.length > 0) {
-            const leaveHtml = todayLeaves.map(l => `<span class="leave-icon">🏥${l.staff}</span>`).join(' ');
+            const leaveHtml = todayLeaves.map(l => {
+                const leaveIcon = getLeaveIcon(l.reason);
+                return `<span class="leave-icon">${leaveIcon}${l.staff}</span>`;
+            }).join(' ');
             document.getElementById('todayLeave').innerHTML = leaveHtml;
         } else {
             document.getElementById('todayLeave').innerHTML = '<span class="empty-state">无</span>';
+        }
+
+        // 渲染今日出差（独立区域：显示视频组的 V 状态人员和平面组 overtimeNote 标记）
+        const businessStaff = [];
+        if (schedule.videoBusiness && schedule.videoBusiness.length) {
+            schedule.videoBusiness.forEach(s => businessStaff.push(`🎥${s}`));
+        }
+        if (schedule.graphicOvertime && schedule.graphicOvertime.includes('出差')) {
+            // 找出当日工作的平面组人员并加上 ✈️
+            for (let name of ['钟豪昌', '郑楚君']) {
+                if (schedule.night.some(n => n.includes(name))) {
+                    businessStaff.push(`📷${name}`);
+                }
+            }
+        }
+        const businessContainer = document.getElementById('todayBusiness');
+        if (businessContainer) {
+            if (businessStaff.length > 0) {
+                businessContainer.innerHTML = businessStaff.map(s => `<span class="leave-icon business">${s}</span>`).join(' ');
+            } else {
+                businessContainer.innerHTML = '<span class="empty-state">无</span>';
+            }
         }
         
         // 渲染顶班
@@ -1696,16 +1882,361 @@
         // 设置默认日期为今天
         const today = new Date();
         document.getElementById('leaveDate').value = formatDate(today);
-        // 清空表单
+        document.getElementById('cancelLeaveDate').value = formatDate(today);
+        document.getElementById('businessLeaveStartDate').value = formatDate(today);
+        document.getElementById('businessLeaveEndDate').value = formatDate(today);
+        // 清空申请请假表单
         document.getElementById('leaveStaff').value = '';
         document.getElementById('leaveReason').value = '';
         document.getElementById('notificationArea').innerHTML = '';
-        // 清空顶班人员选择
         document.getElementById('coverStaffGrid').innerHTML = '';
+        // 清空取消请假区域
+        document.getElementById('cancelLeaveStaff').innerHTML = '<option value="">请选择要取消请假的人员</option>';
+        document.getElementById('cancelLeaveStaff').value = '';
+        document.getElementById('cancelNotificationArea').innerHTML = '';
+        document.getElementById('cancelLeaveResult').style.display = 'none';
+        document.getElementById('cancelLeaveResult').innerHTML = '';
+        // 清空出差设置区域
+        const bizStaff = document.getElementById('businessLeaveStaff');
+        if (bizStaff) bizStaff.value = '';
+        const bizReason = document.getElementById('businessLeaveReason');
+        if (bizReason) bizReason.value = '';
+        const bizNote = document.getElementById('businessNotificationArea');
+        if (bizNote) bizNote.innerHTML = '';
+        const bizResult = document.getElementById('businessLeaveResult');
+        if (bizResult) { bizResult.style.display = 'none'; bizResult.innerHTML = ''; }
+        // 默认打开申请请假 Tab
+        switchLeaveTab('apply');
     }
 
     function closeLeaveModal() {
         document.getElementById('leaveModal').classList.remove('show');
+    }
+
+    // Tab 切换
+    function switchLeaveTab(tab) {
+        const tabApply = document.getElementById('tabApply');
+        const tabCancel = document.getElementById('tabCancel');
+        const tabBusiness = document.getElementById('tabBusiness');
+        const applyArea = document.getElementById('applyLeaveArea');
+        const cancelArea = document.getElementById('cancelLeaveArea');
+        const businessArea = document.getElementById('businessLeaveArea');
+
+        // 先全部重置为非激活样式
+        [tabApply, tabCancel, tabBusiness].forEach(t => {
+            if (t) {
+                t.classList.remove('active');
+                t.style.color = '#6b7280';
+                t.style.borderBottomColor = 'transparent';
+            }
+        });
+        if (applyArea) applyArea.style.display = 'none';
+        if (cancelArea) cancelArea.style.display = 'none';
+        if (businessArea) businessArea.style.display = 'none';
+
+        if (tab === 'apply') {
+            tabApply.classList.add('active');
+            tabApply.style.color = '#1f2937';
+            tabApply.style.borderBottomColor = '#667eea';
+            applyArea.style.display = 'block';
+        } else if (tab === 'business') {
+            tabBusiness.classList.add('active');
+            tabBusiness.style.color = '#1f2937';
+            tabBusiness.style.borderBottomColor = '#10b981';
+            businessArea.style.display = 'block';
+        } else {
+            tabCancel.classList.add('active');
+            tabCancel.style.color = '#1f2937';
+            tabCancel.style.borderBottomColor = '#ef4444';
+            cancelArea.style.display = 'block';
+            // 切换到取消请假 Tab 时，自动查询当日有请假的员工
+            refreshCancelLeaveStaffList();
+        }
+    }
+
+    // 根据日期刷新"取消请假人员"下拉列表（只显示当天有请假记录的员工）
+    function refreshCancelLeaveStaffList() {
+        const dateStr = document.getElementById('cancelLeaveDate').value;
+        const select = document.getElementById('cancelLeaveStaff');
+        const resultBox = document.getElementById('cancelLeaveResult');
+        if (!dateStr) {
+            select.innerHTML = '<option value="">请选择要取消请假的人员</option>';
+            resultBox.style.display = 'none';
+            return;
+        }
+        const records = leaveRecords.filter(r => r.date === dateStr);
+        let html = '<option value="">请选择要取消请假的人员</option>';
+        if (records.length === 0) {
+            html += '<option value="" disabled>（当日暂无请假记录）</option>';
+        } else {
+            records.forEach(record => {
+                const isVideo = videoStaff.includes(record.staff);
+                const icon = isVideo ? '🎥' : '📷';
+                const leaveIcon = getLeaveIcon(record.reason);
+                html += `<option value="${record.staff}">${leaveIcon} ${icon} ${record.staff}${record.reason ? ' - ' + record.reason : ''}</option>`;
+            });
+        }
+        select.innerHTML = html;
+        resultBox.style.display = 'none';
+        resultBox.innerHTML = '';
+    }
+
+    // 取消请假日期变更时刷新下拉列表
+    document.addEventListener('DOMContentLoaded', function() {
+        const cancelDateEl = document.getElementById('cancelLeaveDate');
+        const cancelStaffEl = document.getElementById('cancelLeaveStaff');
+        if (cancelDateEl) {
+            cancelDateEl.addEventListener('change', refreshCancelLeaveStaffList);
+        }
+        if (cancelStaffEl) {
+            cancelStaffEl.addEventListener('change', function() {
+                const dateStr = document.getElementById('cancelLeaveDate').value;
+                const staff = this.value;
+                const resultBox = document.getElementById('cancelLeaveResult');
+                if (!staff) {
+                    resultBox.style.display = 'none';
+                    return;
+                }
+                const record = leaveRecords.find(r => r.date === dateStr && r.staff === staff);
+                if (!record) {
+                    resultBox.style.display = 'block';
+                    resultBox.innerHTML = `❌ 未找到 ${staff} 在 ${dateStr} 的请假记录。`;
+                    resultBox.style.color = '#b91c1c';
+                    return;
+                }
+                // 显示该请假记录的详情
+                const coverText = (record.coverStaff && record.coverStaff.length) ? record.coverStaff.join('、') : '无';
+                resultBox.style.display = 'block';
+                resultBox.style.color = '#374151';
+                resultBox.innerHTML = `
+                    <div style="font-weight: 600; margin-bottom: 6px; color: #1f2937;">📋 该请假记录详情</div>
+                    <div>📅 日期：${record.date}</div>
+                    <div>👤 员工：${record.staff}</div>
+                    <div>💬 原因：${record.reason || '（未填写）'}</div>
+                    <div>🔄 顶班人员：${coverText}</div>
+                    <div style="margin-top: 8px; color: #b91c1c;">⚠️ 确认取消后，${record.staff} 将恢复到原本的工作排班状态，顶班人员也将被移除。</div>
+                `;
+            });
+        }
+    });
+
+    // 提交取消请假
+    function submitCancelLeave() {
+        const dateStr = document.getElementById('cancelLeaveDate').value;
+        const staff = document.getElementById('cancelLeaveStaff').value;
+        const noteArea = document.getElementById('cancelNotificationArea');
+        noteArea.innerHTML = '';
+
+        if (!dateStr || !staff) {
+            noteArea.innerHTML = `<div class="notification error">请选择取消请假的日期与人员。</div>`;
+            return;
+        }
+
+        // 1. 获取用户选择的目标班次
+        const targetRadio = document.querySelector('input[name="assignTarget"]:checked');
+        if (!targetRadio) {
+            noteArea.innerHTML = `<div class="notification error">请在"安排到"中选择目标班次。</div>`;
+            return;
+        }
+        const targetCode = targetRadio.value;  // B / N / S / V
+        const targetTextMap = { B: '白班', N: '夜班', S: '待命', V: '出差' };
+        const targetText = targetTextMap[targetCode];
+
+        // 2. 查找请假记录索引
+        const recordIndex = leaveRecords.findIndex(r => r.date === dateStr && r.staff === staff);
+        if (recordIndex < 0) {
+            noteArea.innerHTML = `<div class="notification error">❌ 未找到 ${staff} 在 ${dateStr} 的请假记录。</div>`;
+            return;
+        }
+
+        // 3. 密码验证
+        const password = prompt('请输入管理员密码以取消请假并重新安排：');
+        if (password === null) return;
+        if (password !== ADMIN_PASSWORD) {
+            alert('❌ 管理员密码错误！');
+            return;
+        }
+
+        const record = leaveRecords[recordIndex];
+        const isVideo = videoStaff.includes(staff);
+
+        // 4. 恢复原始排班状态（先回滚请假带来的改动）
+        if (record.originalVideoAssignments) {
+            VIDEO_CYCLE[record.idx].assignments = {...record.originalVideoAssignments};
+        }
+        if (record.originalGraphicZhong !== undefined) {
+            GRAPHIC_CYCLE[record.idx].zhong = record.originalGraphicZhong;
+        }
+        if (record.originalGraphicZheng !== undefined) {
+            GRAPHIC_CYCLE[record.idx].zheng = record.originalGraphicZheng;
+        }
+
+        // 5. 按用户选择把该员工安排到目标班次
+        if (isVideo) {
+            // 视频组：直接写入字母代码 B / N / S / V
+            VIDEO_CYCLE[record.idx].assignments[staff] = targetCode;
+        } else {
+            // 平面组（钟豪昌 / 郑楚君）："拍" / "p" 都是工作态，"休" = 休息
+            // 选择 B/N/S/V 都视为上班（恢复工作态），只有选 R（休息）才保留休息
+            // 平面组的目标映射：白班/夜班/待命/出差 统一用工作态覆盖，保留原来的"拍"或"p"
+            if (staff === '钟豪昌') {
+                const origAfterRestore = GRAPHIC_CYCLE[record.idx].zhong;
+                if (origAfterRestore === '休') {
+                    // 如果恢复后还是休息，用原来的基础排班值（通过原始周期判断）
+                    GRAPHIC_CYCLE[record.idx].zhong = (record.idx % 2 === 0) ? '拍' : 'p';
+                }
+                // 为了明确标记"出差"，出差时加一个 overtimeNote
+                if (targetCode === 'V') {
+                    GRAPHIC_CYCLE[record.idx].overtimeNote = '✈️ 出差';
+                } else {
+                    // 清除可能的旧标记
+                    if (GRAPHIC_CYCLE[record.idx].overtimeNote === '✈️ 出差') {
+                        GRAPHIC_CYCLE[record.idx].overtimeNote = '';
+                    }
+                }
+            } else if (staff === '郑楚君') {
+                const origAfterRestore = GRAPHIC_CYCLE[record.idx].zheng;
+                if (origAfterRestore === '休') {
+                    GRAPHIC_CYCLE[record.idx].zheng = (record.idx % 2 === 0) ? 'p' : '拍';
+                }
+                if (targetCode === 'V') {
+                    GRAPHIC_CYCLE[record.idx].overtimeNote = '✈️ 出差';
+                } else {
+                    if (GRAPHIC_CYCLE[record.idx].overtimeNote === '✈️ 出差') {
+                        GRAPHIC_CYCLE[record.idx].overtimeNote = '';
+                    }
+                }
+            }
+        }
+
+        // 6. 移除请假记录
+        leaveRecords.splice(recordIndex, 1);
+        saveLeaveRecordsToFirebase();
+
+        // 7. 刷新所有界面
+        renderLeaveRecords();
+        renderTodaySchedule();
+        renderMonth(currentYear, currentMonth);
+        renderPipSchedule();
+        updateSimpleStats();
+
+        noteArea.innerHTML = `<div class="notification success">✅ 已取消 ${staff} 在 ${dateStr} 的请假，并安排到【${targetText}】。</div>`;
+
+        setTimeout(() => {
+            closeLeaveModal();
+        }, 1800);
+    }
+
+    // 提交出差设置（支持日期范围）
+    function submitBusinessLeave() {
+        const startDateStr = document.getElementById('businessLeaveStartDate').value;
+        const endDateStr = document.getElementById('businessLeaveEndDate').value;
+        const staff = document.getElementById('businessLeaveStaff').value;
+        const reason = document.getElementById('businessLeaveReason').value || '出差';
+        const noteArea = document.getElementById('businessNotificationArea');
+        const resultBox = document.getElementById('businessLeaveResult');
+        noteArea.innerHTML = '';
+        resultBox.style.display = 'none';
+        resultBox.innerHTML = '';
+
+        if (!startDateStr || !endDateStr) {
+            noteArea.innerHTML = `<div class="notification error">请选择出差开始日期和结束日期。</div>`;
+            return;
+        }
+        if (!staff) {
+            noteArea.innerHTML = `<div class="notification error">请选择出差人员。</div>`;
+            return;
+        }
+        const startDate = new Date(startDateStr);
+        const endDate = new Date(endDateStr);
+        if (endDate < startDate) {
+            noteArea.innerHTML = `<div class="notification error">结束日期不能早于开始日期。</div>`;
+            return;
+        }
+
+        // 密码验证（一次即可）
+        const password = prompt('请输入管理员密码以设置出差：');
+        if (password === null) return;
+        if (password !== ADMIN_PASSWORD) {
+            alert('❌ 管理员密码错误！');
+            return;
+        }
+
+        // 生成日期列表（含首尾）
+        const dates = [];
+        const curDate = new Date(startDate);
+        while (curDate <= endDate) {
+            dates.push(formatDate(curDate));
+            curDate.setDate(curDate.getDate() + 1);
+        }
+
+        let appliedCount = 0;
+        let skippedCount = 0;
+        const isVideo = videoStaff.includes(staff);
+
+        for (const dateStr of dates) {
+            const existIdx = leaveRecords.findIndex(r =>
+                r.date === dateStr && r.staff === staff && (r.reason === '出差' || (r.reason && r.reason.includes('出差')))
+            );
+            if (existIdx >= 0) {
+                skippedCount++;
+                continue;
+            }
+
+            const dateParts = dateStr.split('-');
+            const scheduleDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+            const idx = getCycleIndex(scheduleDate);
+
+            const originalVideoAssignments = {...VIDEO_CYCLE[idx].assignments};
+            const originalGraphicZhong = GRAPHIC_CYCLE[idx].zhong;
+            const originalGraphicZheng = GRAPHIC_CYCLE[idx].zheng;
+
+            leaveRecords.push({
+                date: dateStr,
+                staff,
+                reason,
+                coverStaff: [],
+                timestamp: new Date().toISOString(),
+                originalVideoAssignments,
+                originalGraphicZhong,
+                originalGraphicZheng,
+                idx
+            });
+
+            if (isVideo) {
+                VIDEO_CYCLE[idx].assignments[staff] = 'V';
+            } else {
+                if (staff === '钟豪昌') {
+                    if (GRAPHIC_CYCLE[idx].zhong === '休') {
+                        GRAPHIC_CYCLE[idx].zhong = (idx % 2 === 0) ? '拍' : 'p';
+                    }
+                } else if (staff === '郑楚君') {
+                    if (GRAPHIC_CYCLE[idx].zheng === '休') {
+                        GRAPHIC_CYCLE[idx].zheng = (idx % 2 === 0) ? 'p' : '拍';
+                    }
+                }
+                GRAPHIC_CYCLE[idx].overtimeNote = '✈️ 出差';
+            }
+
+            appliedCount++;
+        }
+
+        saveLeaveRecordsToFirebase();
+
+        // 刷新
+        renderLeaveRecords();
+        renderTodaySchedule();
+        renderMonth(currentYear, currentMonth);
+        renderPipSchedule();
+        updateSimpleStats();
+
+        resultBox.style.display = 'block';
+        const rangeInfo = (startDateStr === endDateStr) ? startDateStr : `${startDateStr} ~ ${endDateStr}`;
+        resultBox.innerHTML = `<div style="color:#059669;font-weight:600;">✅ ${staff} 已在 ${rangeInfo}（共 ${dates.length} 天）设置为【出差】。已写入 ${appliedCount} 条${skippedCount > 0 ? '，跳过 ' + skippedCount + ' 条重复' : ''}。</div>`;
+
+        setTimeout(() => {
+            closeLeaveModal();
+        }, 1800);
     }
 
     // 设置请假原因快捷选择
@@ -1714,7 +2245,7 @@
     }
 
     // 所有人员列表
-    const allStaff = ['赖京华', '冯健材', '梁元科', '颜世才', '伍鹏宁', '资凡', '钟豪昌', '郑楚君'];
+    const allStaff = ['赖京华', '冯健材', '梁元科', '颜世才', '伍鹏宁', '钟豪昌', '郑楚君'];
     
     // 当选择请假人员时，显示顶班人员选项
     document.getElementById('leaveStaff').addEventListener('change', function() {
@@ -1755,7 +2286,7 @@
         const coverMode = document.querySelector('input[name="coverMode"]:checked').value;
         
         // 判断请假人员属于视频组还是平面组
-        const isLeaveVideo = videoStaff.includes(leaveStaff) || leaveStaff === specialStaff;
+        const isLeaveVideo = videoStaff.includes(leaveStaff);
         
         // 获取当天休息的人员作为推荐顶班候选人
         const restStaff = [...schedule.rest];
@@ -1777,9 +2308,9 @@
         // 如果是视频组人员请假，只显示视频组人员作为顶班候选人
         // 如果是平面组人员请假，只显示平面组人员作为顶班候选人
         if (isLeaveVideo) {
-            candidates = candidates.filter(s => videoStaff.includes(s) || s === specialStaff);
+            candidates = candidates.filter(s => videoStaff.includes(s));
         } else {
-            candidates = candidates.filter(s => !videoStaff.includes(s) && s !== specialStaff);
+            candidates = candidates.filter(s => !videoStaff.includes(s));
         }
         
         // 判断请假人员当天的班次
@@ -1802,7 +2333,7 @@
         grid.innerHTML = candidates.map(candidate => {
             const isRest = restStaff.includes(candidate);
             const isStandby = standbyStaff.includes(candidate);
-            const isVideo = videoStaff.includes(candidate) || candidate === specialStaff;
+            const isVideo = videoStaff.includes(candidate);
             const icon = isVideo ? '🎥' : '📷';
             const role = isVideo ? '视频组' : '平面组';
             
@@ -1838,42 +2369,61 @@
 
     // 管理员密码
     const ADMIN_PASSWORD = '121223';
-    
+
+    // 根据请假原因返回对应图标
+    function getLeaveIcon(reason) {
+        if (!reason) return '🏥';
+        if (reason.includes('出差')) return '✈️';
+        if (reason.includes('育儿')) return '👶';
+        if (reason.includes('调班')) return '🔄';
+        if (reason.includes('病假')) return '💊';
+        if (reason.includes('事假')) return '📋';
+        return '🏥';
+    }
+
     // 提交请假申请
     function submitLeaveRequest() {
         const date = document.getElementById('leaveDate').value;
         const staff = document.getElementById('leaveStaff').value;
         const reason = document.getElementById('leaveReason').value;
         const coverMode = document.querySelector('input[name="coverMode"]:checked').value;
-        
+
         if (!date || !staff) {
             showNotification('error', '请填写完整的请假信息');
             return;
         }
-        
+
+        // === 防重复：同员工同日期已有请假/出差记录则拒绝 ===
+        const existing = leaveRecords.find(r => r.date === date && r.staff === staff);
+        if (existing) {
+            const existType = (existing.reason === '出差' || (existing.reason && existing.reason.includes('出差'))) ? '出差' : '请假';
+            showNotification('warning', `⚠️ ${staff} 在 ${date} 已有${existType}记录，请勿重复提交`);
+            return;
+        }
+
         // 弹出密码输入窗口
         const password = prompt('请输入管理员密码以确认请假：');
-        
+
         // 用户取消输入
         if (password === null) {
             return;
         }
-        
+
         // 验证管理员密码
         if (password !== ADMIN_PASSWORD) {
             alert('❌ 管理员密码错误！');
             return;
         }
-        
+
         // 获取当天排班信息
         const dateParts = date.split('-');
         const scheduleDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
         const schedule = getDailySchedule(scheduleDate);
-        
+
         // 获取选中的顶班人员
         let coverStaff = Array.from(document.querySelectorAll('input[name="coverStaff"]:checked'))
             .map(input => input.value);
-        
+
         // 系统自动分配模式：如果没有选择顶班人员且需要顶班，则自动分配
         if (coverMode === 'auto' && coverStaff.length === 0 && !schedule.rest.includes(staff)) {
             // 优先选择休息人员顶班
@@ -1882,24 +2432,24 @@
                 coverStaff = [availableCover[0]]; // 选择第一个休息人员
             }
         }
-        
+
         // 检查是否需要顶班
         if (!schedule.rest.includes(staff) && coverStaff.length === 0) {
             showNotification('error', `${staff} 当天有排班（${schedule.white.includes(staff) ? '白班' : schedule.night.includes(staff) ? '夜班' : '待命'}），请至少选择一位顶班人员`);
             return;
         }
-        
+
         // 保存原始排班状态用于撤销
         const idx = getCycleIndex(scheduleDate);
         const originalVideoAssignments = {...VIDEO_CYCLE[idx].assignments};
         const originalGraphicZhong = GRAPHIC_CYCLE[idx].zhong;
         const originalGraphicZheng = GRAPHIC_CYCLE[idx].zheng;
-        
+
         // 添加请假记录（包含原始状态用于撤销）
-        leaveRecords.push({ 
-            date, 
-            staff, 
-            reason, 
+        leaveRecords.push({
+            date,
+            staff,
+            reason,
             coverStaff: [...coverStaff],
             timestamp: new Date().toISOString(),
             originalVideoAssignments,
@@ -1926,52 +2476,65 @@
         }, 2000);
     }
     
-    // 更新排班数据（请假时）
+    // 更新排班数据（请假时）——每员工每天只在一个班次显示
     function updateScheduleOnLeave(dateStr, leaveStaff, coverStaff) {
         const dateParts = dateStr.split('-');
         const date = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
         const idx = getCycleIndex(date);
-        
+
         // 获取当天原始排班信息
         const originalSchedule = getDailySchedule(date);
-        
-        // 更新视频组周期数据
+
+        // ===== 视频组处理 =====
         const videoDay = VIDEO_CYCLE[idx];
-        for (let staff of [...videoStaff, specialStaff]) {
-            if (staff === leaveStaff) {
-                // 将请假人员的排班改为休息
+        // 先把所有顶班人员的原班次置为休息（避免同一人在多列出现）
+        for (let staff of videoStaff) {
+            if (coverStaff.includes(staff)) {
                 videoDay.assignments[staff] = 'R';
             }
-            // 如果是顶班人员，设置到相应班次
-            if (coverStaff.includes(staff)) {
-                if (originalSchedule.white.includes(leaveStaff)) {
-                    videoDay.assignments[staff] = 'B';
-                } else if (originalSchedule.night.includes(leaveStaff)) {
-                    videoDay.assignments[staff] = 'N';
-                } else if (originalSchedule.standby.includes(leaveStaff)) {
-                    videoDay.assignments[staff] = 'S';
+        }
+        // 请假人员置为休息
+        if (videoStaff.includes(leaveStaff)) {
+            videoDay.assignments[leaveStaff] = 'R';
+        }
+        // 将顶班人员分配到请假人员原班次
+        if (videoStaff.includes(leaveStaff) || originalSchedule.white.includes(leaveStaff) ||
+            originalSchedule.night.includes(leaveStaff) || originalSchedule.standby.includes(leaveStaff)) {
+            // 确定请假人员的原始班次类型
+            let targetCode = 'N';
+            if (originalSchedule.white.includes(leaveStaff)) targetCode = 'B';
+            else if (originalSchedule.night.includes(leaveStaff)) targetCode = 'N';
+            else if (originalSchedule.standby.includes(leaveStaff)) targetCode = 'S';
+
+            // 把所有视频组顶班人员分配到该班次
+            for (let staff of videoStaff) {
+                if (coverStaff.includes(staff)) {
+                    videoDay.assignments[staff] = targetCode;
                 }
             }
         }
-        
-        // 更新平面组周期数据
+
+        // ===== 平面组处理 =====
+        // zhong = 钟豪昌的状态 ("拍"/"p"/"休"), zheng = 郑楚君的状态 ("拍"/"p"/"休")
         const graphicDay = GRAPHIC_CYCLE[idx];
-        if (graphicDay.zhong === leaveStaff) {
-            graphicDay.zhong = '休';
+
+        // 1. 平面组员工请假：置为休息
+        if (leaveStaff === '钟豪昌') graphicDay.zhong = '休';
+        if (leaveStaff === '郑楚君') graphicDay.zheng = '休';
+
+        // 2. 平面组员工顶班：把顶班人员从原位置"挪"到请假位置
+        //    这里的"请假位置"对平面组来说就是该员工位置（平面组都在"夜班"列）
+        //    如果顶班人员原本是休息状态，把他顶到"拍"以显示在夜班列
+        if (coverStaff.includes('钟豪昌')) {
+            // 如果钟豪昌原本在休假，顶班时让他上班
+            if (graphicDay.zhong === '休') graphicDay.zhong = '拍';
         }
-        if (graphicDay.zheng === leaveStaff) {
-            graphicDay.zheng = '休';
+        if (coverStaff.includes('郑楚君')) {
+            if (graphicDay.zheng === '休') graphicDay.zheng = '拍';
         }
-        
-        // 设置顶班人员
-        coverStaff.forEach(cover => {
-            if (cover === '钟豪昌' && originalSchedule.night.includes(leaveStaff)) {
-                graphicDay.zhong = '拍';
-            }
-            if (cover === '郑楚君' && originalSchedule.night.includes(leaveStaff)) {
-                graphicDay.zheng = '拍';
-            }
-        });
+
+        // 3. 视频组员工请假，平面组员工来顶班：不改变平面组状态（他们仍按自己"拍/p/休"周期）
+        //    顶班标记通过 leaveRecords 的 coverStaff 自动在显示时加 🔄
     }
 
     // 渲染请假记录列表
@@ -1998,7 +2561,7 @@
             const originalIndex = item.originalIndex;
             const dateParts = record.date.split('-');
             const dateStr = `${dateParts[1]}/${dateParts[2]}`;
-            const isVideo = videoStaff.includes(record.staff) || record.staff === specialStaff;
+            const isVideo = videoStaff.includes(record.staff);
             const icon = isVideo ? '🎥' : '📷';
             
             // 简化顶班显示格式
@@ -2030,14 +2593,25 @@
     
     // 撤销请假
     function revokeLeave(index) {
+        const record = leaveRecords[index];
+        
+        // 检查请假记录是否超过5天
+        const leaveDate = new Date(record.date);
+        const today = new Date();
+        const diffTime = Math.abs(today - leaveDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays > 5) {
+            alert('请假记录超过5天，不能删除');
+            return;
+        }
+        
         const password = prompt('请输入管理员密码以撤销请假：');
         
         if (password !== ADMIN_PASSWORD) {
             alert('❌ 管理员密码错误！');
             return;
         }
-        
-        const record = leaveRecords[index];
         
         // 恢复原始排班状态
         if (record.originalVideoAssignments) {
@@ -2109,7 +2683,7 @@
         // 渲染夜班
         const nightHtml = schedule.night.length > 0 
             ? schedule.night.map(s => {
-                const isVideo = videoStaff.includes(s) || s === specialStaff;
+                const isVideo = videoStaff.includes(s);
                 const icon = isVideo ? '🎥' : '📷';
                 return `<span>${icon}${s}</span>`;
             }).join(' ') 
@@ -2119,7 +2693,7 @@
         // 渲染待命
         const standbyHtml = schedule.standby.length > 0 
             ? schedule.standby.map(s => {
-                const isVideo = videoStaff.includes(s) || s === specialStaff;
+                const isVideo = videoStaff.includes(s);
                 const icon = isVideo ? '🎥' : '📷';
                 return `<span>${icon}${s}</span>`;
             }).join(' ') 
@@ -2129,7 +2703,7 @@
         // 渲染正常休息
         const restHtml = schedule.rest.length > 0 
             ? schedule.rest.map(s => {
-                const isVideo = videoStaff.includes(s) || s === specialStaff;
+                const isVideo = videoStaff.includes(s);
                 const icon = isVideo ? '🎥' : '📷';
                 return `<span class="rest-icon">${icon}${s}</span>`;
             }).join(' ') 
@@ -2268,10 +2842,13 @@
         });
     }
     
-    // 打开排班详情新窗口
+    // 打开排班详情新窗口（16:9 横屏大屏）
     function openSchedulePopup() {
-        // 打开新标签页，指向排班详情页面
-        window.open('schedule-popup.html', '_blank', 'width=500,height=600,left=100,top=100');
+        const w = Math.min(window.screen.availWidth, 1600);
+        const h = Math.min(window.screen.availHeight, 900);
+        const left = Math.max(0, Math.floor((window.screen.availWidth - w) / 2));
+        const top = Math.max(0, Math.floor((window.screen.availHeight - h) / 2));
+        window.open('schedule-popup.html', '_blank', `width=${w},height=${h},left=${left},top=${top}`);
     }
     
     // 初始化画中画功能
@@ -2296,7 +2873,7 @@
         const graphicStaff = ['钟豪昌', '郑楚君'];
         const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
         const stats = {};
-        const allStaff = [...videoStaff, specialStaff, ...graphicStaff];
+        const allStaff = [...videoStaff, ...graphicStaff];
         
         allStaff.forEach(staff => {
             stats[staff] = { work: 0, rest: 0, leave: 0, cover: 0 };
@@ -2314,19 +2891,17 @@
             const schedule = getDailySchedule(curDate);
             
             allStaff.forEach(staff => {
-                // 检查视频组和特殊员工
+                // 白班/待命 → 工作
                 if (schedule.white.includes(staff) || schedule.standby.includes(staff)) {
                     stats[staff].work++;
-                } else if (schedule.rest.includes(staff)) {
-                    stats[staff].rest++;
                 }
-                
-                // 检查夜班（需要处理平面组的特殊格式，如"钟豪昌|拍"）
-                const isInNight = schedule.night.some(item => {
-                    return item === staff || item.startsWith(staff + '|');
-                });
-                if (isInNight) {
+                // 夜班（视频组和平面组的名字都是纯字符串） → 工作
+                else if (schedule.night.includes(staff)) {
                     stats[staff].work++;
+                }
+                // 休息
+                else if (schedule.rest.includes(staff)) {
+                    stats[staff].rest++;
                 }
             });
         }

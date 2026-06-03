@@ -2,12 +2,12 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>今日排班详情</title>
     <style>
         * {
             box-sizing: border-box;
-            font-family: Arial, sans-serif;
+            font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
             margin: 0;
             padding: 0;
         }
@@ -15,574 +15,689 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
+            margin: 0;
         }
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            height: 100vh;
+            background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 35%, #7c3aed 100%);
+            color: #fff;
+            position: relative;
+        }
+        /* 背景装饰 */
+        body::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at 15% 20%, rgba(255,255,255,0.08) 0, transparent 40%),
+                radial-gradient(circle at 85% 80%, rgba(255,255,255,0.06) 0, transparent 40%);
+            pointer-events: none;
+        }
+
+        .app {
+            width: 1920px;
+            height: 1080px;
+            /* 通过 JS 动态 transform scale 缩放到当前屏幕 */
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            position: relative;
+            z-index: 1;
+            /* 缩放原点：左上角，配合 scale-helper 居中 */
+            transform-origin: center center;
+        }
+
+        /* 外层居中容器 */
+        .scale-helper {
             width: 100vw;
+            height: 100vh;
             display: flex;
-            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
         }
-        .main-container {
-            display: flex;
-            flex: 1;
-            height: 100%;
-            width: 100%;
-        }
-        .content {
-            flex: 1;
-            padding: 30px;
-            display: flex;
-            flex-direction: column;
-        }
+
+        /* ===== 顶部标题栏 ===== */
         .header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            justify-content: space-between;
+            padding: 14px 32px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 18px;
+            backdrop-filter: blur(10px);
+            height: 100px;
+            flex-shrink: 0;
         }
-        .title {
-            font-size: 32px;
-            font-weight: bold;
-        }
-        .controls {
+        .header-left {
             display: flex;
-            gap: 10px;
+            align-items: center;
+            gap: 24px;
         }
-        .btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            color: white;
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-size: 18px;
-            cursor: pointer;
-            transition: all 0.2s;
+        .logo-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            box-shadow: 0 8px 20px rgba(251,191,36,0.3);
         }
-        .btn:hover {
-            background: rgba(255, 255, 255, 0.3);
+        .title-group h1 {
+            font-size: 38px;
+            font-weight: 700;
+            letter-spacing: 2px;
         }
-        .time-display {
-            font-size: 28px;
-            text-align: center;
-            margin-bottom: 25px;
-            font-family: monospace;
+        .title-group .subtitle {
+            font-size: 16px;
+            opacity: 0.7;
+            margin-top: 4px;
+            letter-spacing: 4px;
         }
-        .section-title {
-            font-size: 32px;
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+        .header-right {
+            text-align: right;
         }
-        .schedule-list {
+        .date-line {
+            font-size: 26px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        .time-line {
+            font-size: 48px;
+            font-weight: 700;
+            font-family: "SF Mono", Consolas, monospace;
+            margin-top: 2px;
+            background: linear-gradient(90deg, #fbbf24, #f97316);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* ===== 排班卡片区域 ===== */
+        .schedule-area {
             flex: 1;
+            display: grid;
+            grid-template-rows: 520px 1fr;
+            gap: 28px;
+            min-height: 0;
+        }
+
+        /* 第一行：核心3大卡片 */
+        .row-main {
+            display: grid;
+            grid-template-columns: 1.1fr 1.8fr 1.1fr;
+            gap: 28px;
+        }
+        /* 第二行：4个辅助卡片 */
+        .row-sub {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 28px;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.14);
+            border-radius: 22px;
+            padding: 26px 30px;
+            backdrop-filter: blur(14px);
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            position: relative;
+            overflow: hidden;
+            min-height: 0;
         }
-        .schedule-item {
-            background: rgba(255, 255, 255, 0.15);
+        .card::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            height: 5px;
+        }
+        .card.white::before  { background: linear-gradient(90deg, #fde68a, #f59e0b); }
+        .card.night::before  { background: linear-gradient(90deg, #818cf8, #6366f1); }
+        .card.standby::before{ background: linear-gradient(90deg, #fdba74, #ea580c); }
+        .card.business::before{ background: linear-gradient(90deg, #93c5fd, #2563eb); }
+        .card.leave::before  { background: linear-gradient(90deg, #fca5a5, #ef4444); }
+        .card.cover::before  { background: linear-gradient(90deg, #a5f3fc, #0891b2); }
+        .card.rest::before   { background: linear-gradient(90deg, #c4b5fd, #8b5cf6); }
+
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 18px;
+            flex-shrink: 0;
+        }
+        .card-icon {
+            width: 48px;
+            height: 48px;
             border-radius: 12px;
-            padding: 20px 25px;
-            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
         }
-        .item-header {
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            opacity: 0.8;
-        }
-        .item-content {
+        .card.white .card-icon  { background: rgba(251,191,36,0.2); }
+        .card.night .card-icon  { background: rgba(99,102,241,0.25); }
+        .card.standby .card-icon{ background: rgba(234,88,12,0.2); }
+        .card.business .card-icon{ background: rgba(37,99,235,0.22); }
+        .card.leave .card-icon  { background: rgba(239,68,68,0.2); }
+        .card.cover .card-icon  { background: rgba(8,145,178,0.2); }
+        .card.rest .card-icon   { background: rgba(139,92,246,0.2); }
+
+        .card-title-text h2 {
             font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+        .card-title-text .time-tag {
+            font-size: 14px;
+            opacity: 0.65;
+            margin-top: 4px;
+            letter-spacing: 1px;
+        }
+
+        /* 人员展示区 */
+        .staff-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 0;
+        }
+        .staff-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            justify-content: center;
+            align-items: center;
+        }
+        .staff-chip {
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.22);
+            border-radius: 14px;
+            padding: 18px 28px;
+            font-size: 34px;
             font-weight: 600;
+            letter-spacing: 2px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            white-space: nowrap;
         }
-        .empty {
-            color: rgba(255, 255, 255, 0.5);
-            font-style: italic;
+        .staff-chip.video::before { content: "🎥"; font-size: 26px; }
+        .staff-chip.photo::before { content: "📷"; font-size: 26px; }
+        .staff-chip.with-reason::after {
+            content: attr(data-reason);
+            font-size: 16px;
+            font-weight: 500;
+            opacity: 0.8;
+            margin-left: 10px;
+            padding: 5px 12px;
+            background: rgba(255,255,255,0.12);
+            border-radius: 8px;
+            letter-spacing: 1px;
         }
-        .rotate-90 {
-            transform: rotate(90deg);
-            width: 100vh !important;
-            height: 100vw !important;
-            position: fixed;
-            top: 0;
-            left: 0;
+        .empty-state {
+            font-size: 30px;
+            opacity: 0.35;
+            font-weight: 500;
+            letter-spacing: 4px;
         }
-        .rotate-180 {
-            transform: rotate(180deg);
+
+        /* 底部小文字（统计） */
+        .card-footer {
+            margin-top: 8px;
+            font-size: 13px;
+            opacity: 0.55;
+            text-align: right;
+            letter-spacing: 2px;
+            flex-shrink: 0;
         }
-        .rotate-270 {
-            transform: rotate(270deg);
-            width: 100vh !important;
-            height: 100vw !important;
-            position: fixed;
-            top: 0;
-            left: 0;
+
+        /* 大屏重点卡片（夜班最大） */
+        .card.night .staff-chip {
+            padding: 24px 40px;
+            font-size: 42px;
         }
+        /* 辅助行卡片稍小一点 */
+        .row-sub .staff-chip {
+            padding: 14px 22px;
+            font-size: 28px;
+        }
+        .row-sub .staff-chip.video::before,
+        .row-sub .staff-chip.photo::before { font-size: 22px; }
+        .row-sub .staff-chip.with-reason::after {
+            font-size: 14px;
+            padding: 4px 10px;
+        }
+        .row-sub .empty-state { font-size: 26px; }
     </style>
 </head>
 <body>
-    <div class="main-container">
-        <div class="content">
-            <div class="header">
-                <div class="title">今日排班详情</div>
-                <div class="controls">
-                    <button class="btn" onclick="rotateScreen()">旋转</button>
-                    <button class="btn" onclick="toggleFullscreen()">全屏</button>
-                    <button class="btn" onclick="window.close()">关闭</button>
+    <div class="scale-helper">
+    <div class="app">
+        <!-- ===== 顶部标题栏 ===== -->
+        <div class="header">
+            <div class="header-left">
+                <div class="logo-icon">📅</div>
+                <div class="title-group">
+                    <h1>内容部摄影组 · 今日排班详情</h1>
+                    <div class="subtitle">CONTENT TEAM · DAILY SCHEDULE</div>
                 </div>
             </div>
-            
-            <div class="time-display" id="currentTime"></div>
-            
-            <div class="section-title">排班信息</div>
-            
-            <div class="schedule-list">
-                <div class="schedule-item">
-                    <div class="item-header">白班</div>
-                    <div class="item-content" id="whiteShift"></div>
+            <div class="header-right">
+                <div class="date-line" id="dateLine">加载中…</div>
+                <div class="time-line" id="timeLine">--:--:--</div>
+            </div>
+        </div>
+
+        <!-- ===== 排班卡片区 ===== -->
+        <div class="schedule-area">
+            <!-- 第一行：核心3大卡片 -->
+            <div class="row-main">
+                <div class="card white">
+                    <div class="card-title">
+                        <div class="card-icon">🌞</div>
+                        <div class="card-title-text">
+                            <h2>白班</h2>
+                            <div class="time-tag">10:00 — 19:00</div>
+                        </div>
+                    </div>
+                    <div class="staff-content">
+                        <div class="staff-list" id="whiteShift"></div>
+                    </div>
+                    <div class="card-footer">WHITE SHIFT</div>
                 </div>
-                <div class="schedule-item">
-                    <div class="item-header">夜班</div>
-                    <div class="item-content" id="nightShift"></div>
+
+                <div class="card night">
+                    <div class="card-title">
+                        <div class="card-icon">🌙</div>
+                        <div class="card-title-text">
+                            <h2>夜班 · 值班</h2>
+                            <div class="time-tag">16:00 — 00:00</div>
+                        </div>
+                    </div>
+                    <div class="staff-content">
+                        <div class="staff-list" id="nightShift"></div>
+                    </div>
+                    <div class="card-footer">NIGHT SHIFT</div>
                 </div>
-                <div class="schedule-item">
-                    <div class="item-header">待命</div>
-                    <div class="item-content" id="standby"></div>
+
+                <div class="card standby">
+                    <div class="card-title">
+                        <div class="card-icon">⚡</div>
+                        <div class="card-title-text">
+                            <h2>待命</h2>
+                            <div class="time-tag">12:00 — 20:00</div>
+                        </div>
+                    </div>
+                    <div class="staff-content">
+                        <div class="staff-list" id="standbyShift"></div>
+                    </div>
+                    <div class="card-footer">STANDBY</div>
                 </div>
-                <div class="schedule-item">
-                    <div class="item-header">休息&请假</div>
-                    <div class="item-content" id="rest"></div>
+            </div>
+
+            <!-- 第二行：4个辅助卡片 -->
+            <div class="row-sub">
+                <div class="card business">
+                    <div class="card-title">
+                        <div class="card-icon">✈️</div>
+                        <div class="card-title-text">
+                            <h2>出差</h2>
+                            <div class="time-tag">BUSINESS TRIP</div>
+                        </div>
+                    </div>
+                    <div class="staff-content">
+                        <div class="staff-list" id="businessShift"></div>
+                    </div>
                 </div>
-                <div class="schedule-item">
-                    <div class="item-header">请假</div>
-                    <div class="item-content" id="leave"></div>
+
+                <div class="card leave">
+                    <div class="card-title">
+                        <div class="card-icon">🏥</div>
+                        <div class="card-title-text">
+                            <h2>请假</h2>
+                            <div class="time-tag">LEAVE</div>
+                        </div>
+                    </div>
+                    <div class="staff-content">
+                        <div class="staff-list" id="leaveShift"></div>
+                    </div>
                 </div>
-                <div class="schedule-item">
-                    <div class="item-header">顶班情况</div>
-                    <div class="item-content" id="cover"></div>
+
+                <div class="card cover">
+                    <div class="card-title">
+                        <div class="card-icon">🔄</div>
+                        <div class="card-title-text">
+                            <h2>顶班</h2>
+                            <div class="time-tag">COVER</div>
+                        </div>
+                    </div>
+                    <div class="staff-content">
+                        <div class="staff-list" id="coverShift"></div>
+                    </div>
+                </div>
+
+                <div class="card rest">
+                    <div class="card-title">
+                        <div class="card-icon">😴</div>
+                        <div class="card-title-text">
+                            <h2>休息</h2>
+                            <div class="time-tag">REST</div>
+                        </div>
+                    </div>
+                    <div class="staff-content">
+                        <div class="staff-list" id="restShift"></div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // 排班数据
+        /* ===== 基础数据 ===== */
         const videoStaff = ["赖京华", "冯健材", "梁元科", "颜世才", "伍鹏宁"];
-        const specialStaff = "资凡";
         const photoStaff = ["钟豪昌", "郑楚君"];
-        
-        // 构建视频组排班周期
+        const BASE_START = new Date(2026, 3, 15);
+        let leaveRecords = [];
+
+        /* ===== 周期构建（与主页面保持一致） ===== */
         function buildVideoCycle() {
-            const allVideo = [...videoStaff, specialStaff];
             const rawPattern = [
-                {type:"常规", assign:["S","N","N","B","R","N"]}, {type:"常规", assign:["N","S","R","N","B","N"]},
-                {type:"常规", assign:["R","N","B","S","N","N"]}, {type:"常规", assign:["N","B","N","R","S","N"]},
-                {type:"值班", assign:["V","R","R","V","R","V"]}, {type:"值班", assign:["R","V","V","R","R","V"]},
-                {type:"常规", assign:["B","R","S","N","N","N"]}, {type:"常规", assign:["N","B","N","S","R","N"]},
-                {type:"常规", assign:["S","N","R","B","N","N"]}, {type:"常规", assign:["N","R","B","N","S","N"]},
-                {type:"常规", assign:["S","N","N","R","B","N"]}, {type:"值班", assign:["V","R","R","R","V","V"]},
-                {type:"值班", assign:["R","R","V","V","R","V"]}, {type:"常规", assign:["N","B","S","N","R","N"]},
-                {type:"常规", assign:["B","R","N","S","N","N"]}, {type:"常规", assign:["N","N","R","B","S","N"]},
-                {type:"常规", assign:["S","R","N","N","B","N"]}, {type:"常规", assign:["R","N","B","S","N","N"]},
-                {type:"值班", assign:["R","V","R","R","V","V"]}, {type:"值班", assign:["V","R","V","R","R","V"]},
-                {type:"常规", assign:["N","B","N","R","S","N"]}, {type:"常规", assign:["B","R","S","N","N","N"]},
-                {type:"常规", assign:["S","N","N","B","R","N"]}, {type:"常规", assign:["N","S","R","N","B","N"]},
-                {type:"常规", assign:["R","N","B","S","N","N"]}, {type:"值班", assign:["R","R","R","V","V","V"]},
-                {type:"值班", assign:["V","V","R","R","R","V"]}, {type:"常规", assign:["B","R","N","N","S","N"]}
+                {type:"常规", assign:["S","N","N","B","R"]}, {type:"常规", assign:["N","S","R","N","B"]},
+                {type:"常规", assign:["R","N","B","S","N"]}, {type:"常规", assign:["N","B","N","R","S"]},
+                {type:"值班", assign:["V","R","R","V","R"]}, {type:"常规", assign:["R","V","V","R","R"]},
+                {type:"常规", assign:["B","R","S","N","N"]}, {type:"常规", assign:["N","B","N","S","R"]},
+                {type:"常规", assign:["S","N","R","B","N"]}, {type:"常规", assign:["N","R","B","N","S"]},
+                {type:"常规", assign:["S","N","N","R","B"]}, {type:"值班", assign:["V","R","R","R","V"]},
+                {type:"值班", assign:["R","R","V","V","R"]}, {type:"常规", assign:["N","B","S","N","R"]},
+                {type:"常规", assign:["B","R","N","S","N"]}, {type:"常规", assign:["N","N","R","B","S"]},
+                {type:"常规", assign:["S","R","N","N","B"]}, {type:"常规", assign:["R","N","B","S","N"]},
+                {type:"值班", assign:["R","V","R","R","V"]}, {type:"值班", assign:["V","R","V","R","R"]},
+                {type:"常规", assign:["N","B","N","R","S"]}, {type:"常规", assign:["B","R","S","N","N"]},
+                {type:"常规", assign:["S","N","N","B","R"]}, {type:"常规", assign:["N","S","R","N","B"]},
+                {type:"常规", assign:["R","N","B","S","N"]}, {type:"值班", assign:["R","R","R","V","V"]},
+                {type:"值班", assign:["V","V","R","R","R"]}, {type:"常规", assign:["B","R","N","N","S"]}
             ];
             return rawPattern.map(pat => ({
                 type: pat.type,
-                assignments: Object.fromEntries(allVideo.map((s, idx) => [s, pat.assign[idx]]))
+                assignments: Object.fromEntries(videoStaff.map((s, idx) => [s, pat.assign[idx]]))
             }));
         }
-        
-        // 构建平面组排班周期
         function buildGraphicCycle() {
             let cycle = new Array(28);
             for(let i=0;i<28;i++) cycle[i] = { zhong: "拍", zheng: "p", overtimeNote: "" };
-            
             cycle[3].zhong = "休"; cycle[4].zhong = "休";
             cycle[17].zhong = "休"; cycle[18].zhong = "休";
             cycle[11].zheng = "休"; cycle[12].zheng = "休";
             cycle[24].zheng = "休"; cycle[25].zheng = "休";
-            
             const zhongSingle = [6, 9, 14, 21];
             const zhengSingle = [0, 7, 15, 22];
-            
             for(let idx of zhongSingle) if(cycle[idx].zhong !== "休") cycle[idx].zhong = "休";
             for(let idx of zhengSingle) if(cycle[idx].zheng !== "休") cycle[idx].zheng = "休";
-            
+            for(let i=0;i<28;i++) if(cycle[i].zhong === "休" && cycle[i].zheng === "休") cycle[i].zheng = (i%2===0) ? "拍" : "p";
             for(let i=0;i<28;i++) {
-                if(cycle[i].zhong === "休" && cycle[i].zheng === "休") {
-                    cycle[i].zheng = (i%2===0) ? "拍" : "p";
-                }
-            }
-            
-            for(let i=0;i<28;i++) {
-                const zhongRest = (cycle[i].zhong === "休");
-                const zhengRest = (cycle[i].zheng === "休");
-                if(zhongRest && !zhengRest) {
-                    if(i>0 && cycle[i-1].zheng !== "休") cycle[i].zheng = (cycle[i-1].zheng === "拍") ? "p" : "拍";
-                    else cycle[i].zheng = "拍";
-                    continue;
-                }
-                if(!zhongRest && zhengRest) {
-                    if(i>0 && cycle[i-1].zhong !== "休") cycle[i].zhong = (cycle[i-1].zhong === "拍") ? "p" : "拍";
-                    else cycle[i].zhong = "拍";
-                    continue;
-                }
+                const zhongRest = (cycle[i].zhong === "休"), zhengRest = (cycle[i].zheng === "休");
+                if(zhongRest && !zhengRest) { cycle[i].zheng = (i>0 && cycle[i-1].zheng !== "休") ? ((cycle[i-1].zheng === "拍") ? "p" : "拍") : "拍"; continue; }
+                if(!zhongRest && zhengRest) { cycle[i].zhong = (i>0 && cycle[i-1].zhong !== "休") ? ((cycle[i-1].zhong === "拍") ? "p" : "拍") : "拍"; continue; }
                 if(!zhongRest && !zhengRest) {
-                    if(i===0) { cycle[i].zhong = "拍"; cycle[i].zheng = "p"; }
+                    if(i===0){ cycle[i].zhong = "拍"; cycle[i].zheng = "p"; }
                     else {
-                        let prevZhong = cycle[i-1].zhong;
-                        if(prevZhong !== "休") cycle[i].zhong = (prevZhong === "拍") ? "p" : "拍";
-                        else {
-                            let prevZheng = cycle[i-1].zheng;
-                            cycle[i].zhong = (prevZheng === "拍") ? "p" : "拍";
-                        }
+                        let prevZ = cycle[i-1].zhong;
+                        if(prevZ !== "休") cycle[i].zhong = (prevZ === "拍") ? "p" : "拍";
+                        else cycle[i].zhong = (cycle[i-1].zheng === "拍") ? "p" : "拍";
                         cycle[i].zheng = (cycle[i].zhong === "拍") ? "p" : "拍";
                     }
                 }
             }
-            
-            if (cycle[11].zhong !== "休") {
-                cycle[11].zhong = "拍";
-            }
-            if (cycle[14].zheng !== "休") {
-                cycle[14].zheng = "拍";
-            }
-            
+            if(cycle[11].zhong !== "休") cycle[11].zhong = "拍";
+            if(cycle[14].zheng !== "休") cycle[14].zheng = "拍";
             return cycle;
         }
-        
         const VIDEO_CYCLE = buildVideoCycle();
         const GRAPHIC_CYCLE = buildGraphicCycle();
-        const BASE_START = new Date(2026, 3, 15);
-        let leaveRecords = [];
-        
-        // 保存原始周期数据，用于重置
-        const ORIGINAL_VIDEO_CYCLE = VIDEO_CYCLE.map(day => ({
-            type: day.type,
-            assignments: {...day.assignments}
-        }));
-        const ORIGINAL_GRAPHIC_CYCLE = GRAPHIC_CYCLE.map(day => ({
-            zhong: day.zhong,
-            zheng: day.zheng,
-            overtimeNote: day.overtimeNote
-        }));
-        
-        // 更新排班数据（请假时）
-        function updateScheduleOnLeave(dateStr, leaveStaff, coverStaff) {
-            const dateParts = dateStr.split('-');
-            const date = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
-            const idx = getCycleIndex(date);
-            
-            // 获取当天原始排班信息
-            const originalSchedule = getDailyScheduleOriginal(date);
-            
-            // 更新视频组周期数据
-            const videoDay = VIDEO_CYCLE[idx];
-            for (let staff of [...videoStaff, specialStaff]) {
-                if (staff === leaveStaff) {
-                    // 将请假人员的排班改为休息
-                    videoDay.assignments[staff] = 'R';
-                }
-                // 如果是顶班人员，设置到相应班次
-                if (coverStaff.includes(staff)) {
-                    if (originalSchedule.white.includes(leaveStaff) || originalSchedule.white.some(n => n.startsWith(leaveStaff + '|'))) {
-                        videoDay.assignments[staff] = 'B';
-                    } else if (originalSchedule.night.includes(leaveStaff) || originalSchedule.night.some(n => n.startsWith(leaveStaff + '|'))) {
-                        videoDay.assignments[staff] = 'N';
-                    } else if (originalSchedule.standby.includes(leaveStaff) || originalSchedule.standby.some(n => n.startsWith(leaveStaff + '|'))) {
-                        videoDay.assignments[staff] = 'S';
-                    }
-                }
-            }
-            
-            // 更新平面组周期数据
-            const graphicDay = GRAPHIC_CYCLE[idx];
-            if (leaveStaff === '钟豪昌') {
-                graphicDay.zhong = '休';
-            }
-            if (leaveStaff === '郑楚君') {
-                graphicDay.zheng = '休';
-            }
-            
-            // 设置顶班人员
-            coverStaff.forEach(cover => {
-                if (cover === '钟豪昌' && (originalSchedule.night.includes(leaveStaff) || originalSchedule.night.some(n => n.startsWith(leaveStaff + '|')))) {
-                    graphicDay.zhong = '拍';
-                }
-                if (cover === '郑楚君' && (originalSchedule.night.includes(leaveStaff) || originalSchedule.night.some(n => n.startsWith(leaveStaff + '|')))) {
-                    graphicDay.zheng = '拍';
-                }
-            });
-        }
-        
-        // 获取原始排班（不考虑请假记录）
-        function getDailyScheduleOriginal(date) {
-            const idx = getCycleIndex(date);
-            const videoDay = ORIGINAL_VIDEO_CYCLE[idx];
-            const graphicDay = ORIGINAL_GRAPHIC_CYCLE[idx];
-            const weekDay = date.getDay();
-            const isWeekend = (weekDay === 0 || weekDay === 1);
-            
-            let videoWhite = null, videoNight = [], videoStandby = [], videoRest = [];
-            for(let staff of [...videoStaff, specialStaff]) {
-                const code = videoDay.assignments[staff];
-                if(code === 'B') videoWhite = staff;
-                else if(code === 'N' || code === 'V') videoNight.push(staff);
-                else if(code === 'S') videoStandby.push(staff);
-                else if(code === 'R') videoRest.push(staff);
-            }
-            
-            let photoNight = [], photoStandby = [], photoRest = [];
-            const zhong = graphicDay.zhong, zheng = graphicDay.zheng;
-            if(zhong === "拍" || zhong === "p") photoNight.push("钟豪昌|" + zhong);
-            else if(zhong === "休") photoRest.push("钟豪昌");
-            
-            if(zheng === "拍" || zheng === "p") photoNight.push("郑楚君|" + zheng);
-            else if(zheng === "休") photoRest.push("郑楚君");
-            
-            let white = (videoWhite && !isWeekend) ? [videoWhite] : [];
-            let night = [...videoNight, ...photoNight];
-            let standby = [...videoStandby, ...photoStandby];
-            let rest = [...videoRest, ...photoRest];
-            
-            return { white, night, standby, rest };
-        }
-        
-        // 重置周期数据
-        function resetCycleData() {
-            for(let i=0; i<VIDEO_CYCLE.length; i++) {
-                VIDEO_CYCLE[i] = {
-                    type: ORIGINAL_VIDEO_CYCLE[i].type,
-                    assignments: {...ORIGINAL_VIDEO_CYCLE[i].assignments}
-                };
-            }
-            for(let i=0; i<GRAPHIC_CYCLE.length; i++) {
-                GRAPHIC_CYCLE[i] = {
-                    zhong: ORIGINAL_GRAPHIC_CYCLE[i].zhong,
-                    zheng: ORIGINAL_GRAPHIC_CYCLE[i].zheng,
-                    overtimeNote: ORIGINAL_GRAPHIC_CYCLE[i].overtimeNote
-                };
-            }
-        }
-        
-        // 获取周期索引
+        const ORIGINAL_VIDEO = VIDEO_CYCLE.map(d => ({type:d.type, assignments:{...d.assignments}}));
+        const ORIGINAL_GRAPHIC = GRAPHIC_CYCLE.map(d => ({zhong:d.zhong, zheng:d.zheng, overtimeNote:d.overtimeNote}));
+
         function getCycleIndex(date) {
             const diffDays = Math.floor((date - BASE_START) / (1000*60*60*24));
             let idx = diffDays % 28;
             if(idx < 0) idx += 28;
             return idx;
         }
-        
-        // 获取每日排班
-        function getDailySchedule(date) {
+
+        /* ===== 请假修改排班逻辑 ===== */
+        function updateScheduleOnLeave(dateStr, leaveStaff, coverStaff, reason) {
+            const parts = dateStr.split('-');
+            const date = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
             const idx = getCycleIndex(date);
+
+            // 先判断原始班次
+            const origVideoWhite = videoStaff.find(s => ORIGINAL_VIDEO[idx].assignments[s] === 'B');
+            const origVideoNightV = videoStaff.filter(s => ORIGINAL_VIDEO[idx].assignments[s] === 'N' || ORIGINAL_VIDEO[idx].assignments[s] === 'V');
+            const origVideoStandby = videoStaff.filter(s => ORIGINAL_VIDEO[idx].assignments[s] === 'S');
+
+            // 1) 视频组：请假人员改为 R
+            if(videoStaff.includes(leaveStaff)) VIDEO_CYCLE[idx].assignments[leaveStaff] = 'R';
+            // 平面组请假
+            if(leaveStaff === "钟豪昌") GRAPHIC_CYCLE[idx].zhong = "休";
+            if(leaveStaff === "郑楚君") GRAPHIC_CYCLE[idx].zheng = "休";
+
+            // 2) 顶班人员替换到请假者的原班次
+            coverStaff.forEach(cs => {
+                if(!videoStaff.includes(cs)) return;
+                if(origVideoWhite === leaveStaff) VIDEO_CYCLE[idx].assignments[cs] = 'B';
+                else if(origVideoNightV.includes(leaveStaff)) VIDEO_CYCLE[idx].assignments[cs] = 'N';
+                else if(origVideoStandby.includes(leaveStaff)) VIDEO_CYCLE[idx].assignments[cs] = 'S';
+            });
+
+            // 3) 平面组顶班：夜班列显示为顶班人
+            // （如果平面组某人原本"休"且被选中作为顶班，则恢复为"拍"）
+            coverStaff.forEach(cs => {
+                if(cs === "钟豪昌" && GRAPHIC_CYCLE[idx].zhong === "休") GRAPHIC_CYCLE[idx].zhong = "拍";
+                if(cs === "郑楚君" && GRAPHIC_CYCLE[idx].zheng === "休") GRAPHIC_CYCLE[idx].zheng = "p";
+            });
+        }
+
+        /* ===== 请假原因图标 ===== */
+        function leaveIcon(reason) {
+            if(!reason) return "🏥";
+            if(reason.includes("出差")) return "✈️";
+            if(reason.includes("育儿")) return "👶";
+            if(reason.includes("调班")) return "🔄";
+            if(reason.includes("事假")) return "📋";
+            if(reason.includes("病假")) return "💊";
+            return "🏥";
+        }
+
+        /* ===== 获取今日排班分类 ===== */
+        function getTodaySchedule() {
+            const today = new Date();
+            const idx = getCycleIndex(today);
             const videoDay = VIDEO_CYCLE[idx];
             const graphicDay = GRAPHIC_CYCLE[idx];
-            const weekDay = date.getDay();
+            const weekDay = today.getDay();
             const isWeekend = (weekDay === 0 || weekDay === 1);
-            
-            let videoWhite = null, videoNight = [], videoStandby = [], videoRest = [];
-            for(let staff of [...videoStaff, specialStaff]) {
-                const code = videoDay.assignments[staff];
-                if(code === 'B') videoWhite = staff;
-                else if(code === 'N' || code === 'V') videoNight.push(staff);
-                else if(code === 'S') videoStandby.push(staff);
-                else if(code === 'R') videoRest.push(staff);
+
+            // 视频组
+            const white = videoStaff.find(s => videoDay.assignments[s] === 'B');
+            const nightVideo = videoStaff.filter(s => videoDay.assignments[s] === 'N');
+            const businessVideo = videoStaff.filter(s => videoDay.assignments[s] === 'V');
+            const standby = videoStaff.filter(s => videoDay.assignments[s] === 'S');
+            const restVideo = videoStaff.filter(s => videoDay.assignments[s] === 'R');
+
+            // 平面组："拍"/"p"都算夜班列显示
+            const photoNight = [];
+            const photoRest = [];
+            if(graphicDay.zhong === "拍" || graphicDay.zhong === "p") photoNight.push({name:"钟豪昌", state: graphicDay.zhong});
+            else if(graphicDay.zhong === "休") photoRest.push("钟豪昌");
+            if(graphicDay.zheng === "拍" || graphicDay.zheng === "p") photoNight.push({name:"郑楚君", state: graphicDay.zheng});
+            else if(graphicDay.zheng === "休") photoRest.push("郑楚君");
+
+            // 今日请假记录
+            const todayStr = formatDate(today);
+            const todayLeaves = leaveRecords.filter(l => l.date === todayStr);
+            const leaveStaffNames = todayLeaves.map(l => l.staff);
+
+            // 从 night/business/standby/rest 中剔除请假人员（他们在"请假"卡片展示）
+            // 出差人员（V）不在夜班列展示，而在单独的"出差"卡片展示
+            const finalNight = [
+                ...nightVideo.filter(n => !leaveStaffNames.includes(n)),
+                ...photoNight.filter(p => !leaveStaffNames.includes(p.name))
+            ];
+            const finalBusiness = businessVideo.filter(n => !leaveStaffNames.includes(n));
+            const finalStandby = standby.filter(n => !leaveStaffNames.includes(n));
+            const finalRest = [
+                ...restVideo.filter(n => !leaveStaffNames.includes(n)),
+                ...photoRest.filter(n => !leaveStaffNames.includes(n))
+            ];
+
+            return {
+                white: isWeekend ? null : (white && !leaveStaffNames.includes(white) ? white : null),
+                night: finalNight,
+                standby: finalStandby,
+                rest: finalRest,
+                business: finalBusiness,
+                leaves: todayLeaves,  // 带 reason 信息
+                dateStr: todayStr
+            };
+        }
+
+        function formatDate(d) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth()+1).padStart(2,'0');
+            const day = String(d.getDate()).padStart(2,'0');
+            return `${y}-${m}-${day}`;
+        }
+
+        /* ===== 渲染人员卡片 ===== */
+        function renderChips(list, container, isPhotoObj = false, addReasonIcon = null) {
+            if(!list || list.length === 0) {
+                container.innerHTML = '<span class="empty-state">— 无 —</span>';
+                return;
             }
-            
-            let photoNight = [], photoStandby = [], photoRest = [];
-            const zhong = graphicDay.zhong, zheng = graphicDay.zheng;
-            // 平面组无论是拍还是p，都放在夜班·值班列
-            if(zhong === "拍" || zhong === "p") photoNight.push("钟豪昌|" + zhong);
-            else if(zhong === "休") photoRest.push("钟豪昌");
-            
-            if(zheng === "拍" || zheng === "p") photoNight.push("郑楚君|" + zheng);
-            else if(zheng === "休") photoRest.push("郑楚君");
-            
-            let white = (videoWhite && !isWeekend) ? [videoWhite] : [];
-            let night = [...videoNight, ...photoNight];
-            let standby = [...videoStandby, ...photoStandby];
-            let rest = [...videoRest, ...photoRest];
-            
-            return { white, night, standby, rest, overtimeNote: graphicDay.overtimeNote, isWeekend };
-        }
-        
-        // 格式化日期
-        function formatDate(date) {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        }
-        
-        // 实时时间更新
-        function updateCurrentTime() {
-            try {
-                const now = new Date();
-                const year = now.getFullYear();
-                const month = String(now.getMonth() + 1).padStart(2, '0');
-                const day = String(now.getDate()).padStart(2, '0');
-                const weekDays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
-                const weekDay = weekDays[now.getDay()];
-                const hours = String(now.getHours()).padStart(2, '0');
-                const minutes = String(now.getMinutes()).padStart(2, '0');
-                const seconds = String(now.getSeconds()).padStart(2, '0');
-                
-                const timeStr = year + '/' + month + '/' + day + '  ' + weekDay + '  ' + hours + ':' + minutes + ':' + seconds;
-                const timeElement = document.getElementById('currentTime');
-                if (timeElement) {
-                    timeElement.textContent = timeStr;
+            container.innerHTML = list.map(item => {
+                const name = isPhotoObj ? item.name : item;
+                let cls = videoStaff.includes(name) ? "video" : (photoStaff.includes(name) ? "photo" : "video");
+                if(addReasonIcon && addReasonIcon(item)) {
+                    const reason = typeof item === 'string' ? "" : (item.reason || "");
+                    const icon = leaveIcon(reason);
+                    return `<span class="staff-chip ${cls}" data-reason="${reason ? reason : ''}">${icon} ${name}</span>`;
                 }
-            } catch (e) {
-                console.error('时间更新错误:', e);
-            }
+                return `<span class="staff-chip ${cls}">${name}</span>`;
+            }).join('');
         }
-        
-        // 渲染今日排班
-        function renderTodaySchedule() {
-            try {
-                const today = new Date();
-                const schedule = getDailySchedule(today);
-                
-                const todayStr = formatDate(today);
-                const todayLeaves = leaveRecords.filter(l => l.date === todayStr);
-                
-                const whiteShift = document.getElementById('whiteShift');
-                const nightShift = document.getElementById('nightShift');
-                const standby = document.getElementById('standby');
-                const rest = document.getElementById('rest');
-                const leave = document.getElementById('leave');
-                const cover = document.getElementById('cover');
-                
-                // 处理排班数据，提取纯人名
-                const cleanName = (name) => name.split('|')[0];
-                
-                if (whiteShift) whiteShift.textContent = schedule.white.length > 0 ? schedule.white.map(cleanName).join(' ') : '-';
-                if (nightShift) nightShift.textContent = schedule.night.length > 0 ? schedule.night.map(cleanName).join(' ') : '-';
-                if (standby) standby.textContent = schedule.standby.length > 0 ? schedule.standby.map(cleanName).join(' ') : '-';
-                if (rest) rest.textContent = schedule.rest.length > 0 ? schedule.rest.map(cleanName).join(' ') : '-';
-                
-                if (leave) {
-                    if (todayLeaves.length > 0) {
-                        leave.textContent = todayLeaves.map(l => l.staff).join(' ');
-                    } else {
-                        leave.textContent = '无';
-                    }
-                }
-                
-                if (cover) {
-                    if (todayLeaves.length > 0) {
-                        const coverList = todayLeaves.flatMap(l => {
-                            if (!l.coverStaff || l.coverStaff.length === 0) return [];
-                            return l.coverStaff.map(coverName => {
-                                const shortCover = coverName.substring(0, 1);
-                                const shortOriginal = l.staff.substring(0, 1);
-                                return shortCover + '（顶）' + shortOriginal;
-                            });
-                        }).join(' ');
-                        cover.textContent = coverList || '无';
-                    } else {
-                        cover.textContent = '无';
-                    }
-                }
-            } catch (e) {
-                console.error('排班渲染错误:', e);
-            }
-        }
-        
-        // 从localStorage获取请假记录
-        function loadLeaveRecords() {
-            const storedRecords = localStorage.getItem('leaveRecords');
-            if (storedRecords) {
-                leaveRecords = JSON.parse(storedRecords);
-                
-                // 重置周期数据
-                resetCycleData();
-                
-                // 应用所有请假记录到排班数据
-                leaveRecords.forEach(record => {
-                    updateScheduleOnLeave(record.date, record.staff, record.coverStaff || []);
-                });
-            }
-        }
-        
-        // 旋转屏幕功能
-        let currentRotation = 0;
-        
-        function rotateScreen() {
-            currentRotation = (currentRotation + 90) % 360;
-            
-            const body = document.body;
-            
-            // 移除所有旋转类
-            body.classList.remove('rotate-90', 'rotate-180', 'rotate-270');
-            
-            // 根据当前旋转角度添加对应的类
-            if (currentRotation === 90) {
-                body.classList.add('rotate-90');
-            } else if (currentRotation === 180) {
-                body.classList.add('rotate-180');
-            } else if (currentRotation === 270) {
-                body.classList.add('rotate-270');
-            }
-        }
-        
-        // 全屏功能
-        function toggleFullscreen() {
-            if (!document.fullscreenElement) {
-                if (document.documentElement.requestFullscreen) {
-                    document.documentElement.requestFullscreen({ navigationUI: 'hide' });
-                } else if (document.documentElement.mozRequestFullScreen) {
-                    document.documentElement.mozRequestFullScreen();
-                } else if (document.documentElement.webkitRequestFullscreen) {
-                    document.documentElement.webkitRequestFullscreen();
-                } else if (document.documentElement.msRequestFullscreen) {
-                    document.documentElement.msRequestFullscreen();
-                }
+
+        /* ===== 主渲染 ===== */
+        function renderSchedule() {
+            const data = getTodaySchedule();
+
+            // 白班
+            renderChips(data.white ? [data.white] : [], document.getElementById('whiteShift'));
+            // 夜班
+            const nightList = data.night.map(n => typeof n === 'string' ? n : n.name);
+            renderChips(nightList, document.getElementById('nightShift'));
+            // 待命
+            renderChips(data.standby, document.getElementById('standbyShift'));
+            // 出差
+            renderChips(data.business, document.getElementById('businessShift'));
+            // 请假（带原因图标）
+            const leaveList = data.leaves.map(l => ({
+                name: l.staff,
+                reason: l.reason || ""
+            }));
+            const leaveContainer = document.getElementById('leaveShift');
+            if(leaveList.length === 0) {
+                leaveContainer.innerHTML = '<span class="empty-state">— 无 —</span>';
             } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                } else if (document.mozCancelFullScreen) {
-                    document.mozCancelFullScreen();
-                } else if (document.webkitExitFullscreen) {
-                    document.webkitExitFullscreen();
-                } else if (document.msExitFullscreen) {
-                    document.msExitFullscreen();
+                leaveContainer.innerHTML = leaveList.map(item => {
+                    const cls = videoStaff.includes(item.name) ? "video" : (photoStaff.includes(item.name) ? "photo" : "video");
+                    const icon = leaveIcon(item.reason);
+                    const tag = item.reason ? item.reason : "请假";
+                    return `<span class="staff-chip ${cls}" data-reason="${tag}">${icon} ${item.name}</span>`;
+                }).join('');
+            }
+            // 顶班
+            const coverList = data.leaves.flatMap(l => (l.coverStaff || []).map(c => ({name: c, coverFor: l.staff})));
+            const coverContainer = document.getElementById('coverShift');
+            if(coverList.length === 0) {
+                coverContainer.innerHTML = '<span class="empty-state">— 无 —</span>';
+            } else {
+                coverContainer.innerHTML = coverList.map(item => {
+                    const cls = videoStaff.includes(item.name) ? "video" : (photoStaff.includes(item.name) ? "photo" : "video");
+                    return `<span class="staff-chip ${cls}" data-reason="顶${item.coverFor}">🔄 ${item.name}</span>`;
+                }).join('');
+            }
+            // 休息
+            renderChips(data.rest, document.getElementById('restShift'));
+        }
+
+        /* ===== 日期时间更新 ===== */
+        function updateDateTime() {
+            const now = new Date();
+            const weekDays = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+            const y = now.getFullYear();
+            const m = String(now.getMonth()+1).padStart(2,'0');
+            const d = String(now.getDate()).padStart(2,'0');
+            const w = weekDays[now.getDay()];
+            document.getElementById('dateLine').textContent = `${y}/${m}/${d}  ${w}`;
+            const hh = String(now.getHours()).padStart(2,'0');
+            const mm = String(now.getMinutes()).padStart(2,'0');
+            const ss = String(now.getSeconds()).padStart(2,'0');
+            document.getElementById('timeLine').textContent = `${hh}:${mm}:${ss}`;
+        }
+
+        /* ===== 加载请假记录（来自主页面的 localStorage） ===== */
+        function loadLeaveRecords() {
+            try {
+                const stored = localStorage.getItem('leaveRecords');
+                if(stored) {
+                    leaveRecords = JSON.parse(stored);
+                    // 重置周期数据并重新应用
+                    for(let i=0; i<VIDEO_CYCLE.length; i++) VIDEO_CYCLE[i] = {type: ORIGINAL_VIDEO[i].type, assignments:{...ORIGINAL_VIDEO[i].assignments}};
+                    for(let i=0; i<GRAPHIC_CYCLE.length; i++) GRAPHIC_CYCLE[i] = {zhong: ORIGINAL_GRAPHIC[i].zhong, zheng: ORIGINAL_GRAPHIC[i].zheng, overtimeNote: ORIGINAL_GRAPHIC[i].overtimeNote};
+                    leaveRecords.forEach(r => updateScheduleOnLeave(r.date, r.staff, r.coverStaff || [], r.reason));
                 }
-            }
+            } catch(e) { console.warn(e); }
         }
-        
-        // 初始化
+
+        /* ===== 自动缩放：1920x1080设计稿自适应任意屏幕 ===== */
+        const DESIGN_W = 1920;
+        const DESIGN_H = 1080;
+
+        function applyScale() {
+            const app = document.querySelector('.app');
+            if (!app) return;
+            // 用 CSS 像素作为基准，手机横屏时会自动适配
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            // 选择较小的比例，确保内容不被裁切
+            const scale = Math.min(vw / DESIGN_W, vh / DESIGN_H);
+            app.style.transform = `scale(${scale})`;
+            app.style.webkitTransform = `scale(${scale})`;
+        }
+
+        /* ===== 初始化 ===== */
         function init() {
+            applyScale();
             loadLeaveRecords();
-            updateCurrentTime();
-            setInterval(updateCurrentTime, 1000);
-            renderTodaySchedule();
-            
-            setInterval(() => {
-                loadLeaveRecords();
-                renderTodaySchedule();
-            }, 30000);
+            updateDateTime();
+            renderSchedule();
+            setInterval(updateDateTime, 1000);
+            setInterval(() => { loadLeaveRecords(); renderSchedule(); }, 15000);
         }
-        
-        // 页面加载完成后初始化
-        window.onload = init;
-        
-        // 监听localStorage变化
-        window.addEventListener('storage', function(e) {
-            if (e.key === 'leaveRecords') {
-                loadLeaveRecords();
-                renderTodaySchedule();
-            }
+        window.addEventListener('resize', applyScale);
+        window.addEventListener('orientationchange', () => setTimeout(applyScale, 200));
+        window.addEventListener('storage', (e) => {
+            if(e.key === 'leaveRecords') { loadLeaveRecords(); renderSchedule(); }
         });
+        window.onload = init;
     </script>
 </body>
 </html>
