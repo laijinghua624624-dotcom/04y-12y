@@ -478,6 +478,12 @@
             const date = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
             const idx = getCycleIndex(date);
 
+            // === 关键修复：如果顶班人员当天自己也有请假记录，不安排他顶班 ===
+            const dayLeaveStaff = leaveRecords
+                .filter(r => r.date === dateStr)
+                .map(r => r.staff);
+            const validCoverStaff = (coverStaff || []).filter(s => !dayLeaveStaff.includes(s));
+
             // 先判断原始班次
             const origVideoWhite = videoStaff.find(s => ORIGINAL_VIDEO[idx].assignments[s] === 'B');
             const origVideoNightV = videoStaff.filter(s => ORIGINAL_VIDEO[idx].assignments[s] === 'N' || ORIGINAL_VIDEO[idx].assignments[s] === 'V');
@@ -489,17 +495,16 @@
             if(leaveStaff === "钟豪昌") GRAPHIC_CYCLE[idx].zhong = "休";
             if(leaveStaff === "郑楚君") GRAPHIC_CYCLE[idx].zheng = "休";
 
-            // 2) 顶班人员替换到请假者的原班次
-            coverStaff.forEach(cs => {
+            // 2) 顶班人员替换到请假者的原班次（只分配当天没有请假记录的人）
+            validCoverStaff.forEach(cs => {
                 if(!videoStaff.includes(cs)) return;
                 if(origVideoWhite === leaveStaff) VIDEO_CYCLE[idx].assignments[cs] = 'B';
                 else if(origVideoNightV.includes(leaveStaff)) VIDEO_CYCLE[idx].assignments[cs] = 'N';
                 else if(origVideoStandby.includes(leaveStaff)) VIDEO_CYCLE[idx].assignments[cs] = 'S';
             });
 
-            // 3) 平面组顶班：夜班列显示为顶班人
-            // （如果平面组某人原本"休"且被选中作为顶班，则恢复为"拍"）
-            coverStaff.forEach(cs => {
+            // 3) 平面组顶班：夜班列显示为顶班人（只分配当天没有请假记录的人）
+            validCoverStaff.forEach(cs => {
                 if(cs === "钟豪昌" && GRAPHIC_CYCLE[idx].zhong === "休") GRAPHIC_CYCLE[idx].zhong = "拍";
                 if(cs === "郑楚君" && GRAPHIC_CYCLE[idx].zheng === "休") GRAPHIC_CYCLE[idx].zheng = "p";
             });
@@ -623,8 +628,12 @@
                     return `<span class="staff-chip ${cls}" data-reason="${tag}">${icon} ${item.name}</span>`;
                 }).join('');
             }
-            // 顶班
-            const coverList = data.leaves.flatMap(l => (l.coverStaff || []).map(c => ({name: c, coverFor: l.staff})));
+            // 顶班（关键修复：当天自己也请假的不算顶班）
+            const todayLeaveSet = new Set(data.leaves.map(l => l.staff));
+            const coverList = data.leaves
+                .flatMap(l => (l.coverStaff || [])
+                .filter(c => !todayLeaveSet.has(c))
+                .map(c => ({name: c, coverFor: l.staff})));
             const coverContainer = document.getElementById('coverShift');
             if(coverList.length === 0) {
                 coverContainer.innerHTML = '<span class="empty-state">— 无 —</span>';
