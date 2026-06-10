@@ -2034,9 +2034,15 @@
                 }
                 const record = leaveRecords.find(r => r.date === dateStr && r.staff === staff);
                 if (!record) {
+                    // 没有请假记录，显示当前排班状态
                     resultBox.style.display = 'block';
-                    resultBox.innerHTML = `❌ 未找到 ${staff} 在 ${dateStr} 的请假记录。`;
-                    resultBox.style.color = '#b91c1c';
+                    resultBox.style.color = '#374151';
+                    resultBox.innerHTML = `
+                        <div style="font-weight: 600; margin-bottom: 6px; color: #1f2937;">ℹ️ 当前状态</div>
+                        <div>📅 日期：${dateStr}</div>
+                        <div>👤 员工：${staff}</div>
+                        <div>💡 该员工当天无请假记录，将直接调整班次。</div>
+                    `;
                     return;
                 }
                 // 显示该请假记录的详情
@@ -2049,7 +2055,7 @@
                     <div>👤 员工：${record.staff}</div>
                     <div>💬 原因：${record.reason || '（未填写）'}</div>
                     <div>🔄 顶班人员：${coverText}</div>
-                    <div style="margin-top: 8px; color: #b91c1c;">⚠️ 确认取消后，${record.staff} 将恢复到原本的工作排班状态，顶班人员也将被移除。</div>
+                    <div style="margin-top: 8px; color: #b91c1c;">⚠️ 确认后将取消请假，并重新安排班次。</div>
                 `;
             });
         }
