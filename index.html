@@ -1433,8 +1433,22 @@
         return cycle;
     }
     
-    const VIDEO_CYCLE = buildVideoCycle();
-    const GRAPHIC_CYCLE = buildGraphicCycle();
+    let VIDEO_CYCLE = buildVideoCycle();
+    let GRAPHIC_CYCLE = buildGraphicCycle();
+    
+    const savedSchedule = localStorage.getItem('scheduleCycle');
+    if (savedSchedule) {
+        try {
+            const saved = JSON.parse(savedSchedule);
+            if (saved.video && saved.graphic) {
+                VIDEO_CYCLE = saved.video;
+                GRAPHIC_CYCLE = saved.graphic;
+            }
+        } catch (e) {
+            console.warn('加载保存的排班周期失败，使用默认值');
+        }
+    }
+    
     const BASE_START = new Date(2026, 3, 15);
     
     function getCycleIndex(date) {
@@ -1662,16 +1676,19 @@
           const data = snapshot.val();
           console.log('📡 Firebase 收到数据:', data);
           
-          // 重新初始化排班周期
-          const newVideoCycle = buildVideoCycle();
-          const newGraphicCycle = buildGraphicCycle();
-          
-          // 复制回全局变量
-          for (let i = 0; i < VIDEO_CYCLE.length; i++) {
-            VIDEO_CYCLE[i].assignments = {...newVideoCycle[i].assignments};
-          }
-          for (let i = 0; i < GRAPHIC_CYCLE.length; i++) {
-            GRAPHIC_CYCLE[i] = {...newGraphicCycle[i]};
+          // 检查是否有保存的排班周期
+          const savedSchedule = localStorage.getItem('scheduleCycle');
+          if (savedSchedule) {
+              try {
+                  const saved = JSON.parse(savedSchedule);
+                  if (saved.video && saved.graphic) {
+                      VIDEO_CYCLE = saved.video;
+                      GRAPHIC_CYCLE = saved.graphic;
+                      console.log('✅ 使用 localStorage 保存的排班周期');
+                  }
+              } catch (e) {
+                  console.warn('加载保存的排班周期失败，使用默认值');
+              }
           }
           
           if (data) {
@@ -1732,6 +1749,15 @@
       
       // 同时保存到localStorage，供新窗口使用
       localStorage.setItem('leaveRecords', JSON.stringify(leaveRecords));
+    }
+
+    // 保存排班周期到 localStorage
+    function saveScheduleCycle() {
+        localStorage.setItem('scheduleCycle', JSON.stringify({
+            video: VIDEO_CYCLE,
+            graphic: GRAPHIC_CYCLE
+        }));
+        console.log('✅ 排班周期已保存到 localStorage');
     }
 
     // 添加请假记录
@@ -2169,6 +2195,7 @@
             leaveRecords.splice(recordIndex, 1);
         }
         saveLeaveRecordsToFirebase();
+        saveScheduleCycle();
 
         // 7. 刷新所有界面
         renderLeaveRecords();

@@ -460,8 +460,22 @@
             if(cycle[14].zheng !== "休") cycle[14].zheng = "拍";
             return cycle;
         }
-        const VIDEO_CYCLE = buildVideoCycle();
-        const GRAPHIC_CYCLE = buildGraphicCycle();
+        let VIDEO_CYCLE = buildVideoCycle();
+        let GRAPHIC_CYCLE = buildGraphicCycle();
+        
+        const savedSchedule = localStorage.getItem('scheduleCycle');
+        if (savedSchedule) {
+            try {
+                const saved = JSON.parse(savedSchedule);
+                if (saved.video && saved.graphic) {
+                    VIDEO_CYCLE = saved.video;
+                    GRAPHIC_CYCLE = saved.graphic;
+                }
+            } catch (e) {
+                console.warn('加载保存的排班周期失败，使用默认值');
+            }
+        }
+        
         const ORIGINAL_VIDEO = VIDEO_CYCLE.map(d => ({type:d.type, assignments:{...d.assignments}}));
         const ORIGINAL_GRAPHIC = GRAPHIC_CYCLE.map(d => ({zhong:d.zhong, zheng:d.zheng, overtimeNote:d.overtimeNote}));
 
