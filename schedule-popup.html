@@ -530,8 +530,8 @@
             const weekDay = today.getDay();
             const isWeekend = (weekDay === 0 || weekDay === 1);
 
-            // 视频组
-            const white = videoStaff.find(s => videoDay.assignments[s] === 'B');
+            // 视频组 - 白班支持多人
+            const whiteVideo = videoStaff.filter(s => videoDay.assignments[s] === 'B');
             const nightVideo = videoStaff.filter(s => videoDay.assignments[s] === 'N');
             const businessVideo = videoStaff.filter(s => videoDay.assignments[s] === 'V');
             const standby = videoStaff.filter(s => videoDay.assignments[s] === 'S');
@@ -564,7 +564,7 @@
             ];
 
             return {
-                white: isWeekend ? null : (white && !leaveStaffNames.includes(white) ? white : null),
+                white: isWeekend ? [] : whiteVideo.filter(w => !leaveStaffNames.includes(w)),
                 night: finalNight,
                 standby: finalStandby,
                 rest: finalRest,
@@ -603,8 +603,8 @@
         function renderSchedule() {
             const data = getTodaySchedule();
 
-            // 白班
-            renderChips(data.white ? [data.white] : [], document.getElementById('whiteShift'));
+            // 白班（支持多人）
+            renderChips(Array.isArray(data.white) ? data.white : (data.white ? [data.white] : []), document.getElementById('whiteShift'));
             // 夜班
             const nightList = data.night.map(n => typeof n === 'string' ? n : n.name);
             renderChips(nightList, document.getElementById('nightShift'));
