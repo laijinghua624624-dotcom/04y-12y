@@ -1451,10 +1451,10 @@
         const weekDay = date.getDay();
         const isWeekend = (weekDay === 0 || weekDay === 1);
 
-        let videoWhite = null, videoNight = [], videoStandby = [], videoRest = [], videoBusiness = [];
+        let videoWhite = [], videoNight = [], videoStandby = [], videoRest = [], videoBusiness = [];
         for(let staff of videoStaff) {
             const code = videoDay.assignments[staff];
-            if(code === 'B') videoWhite = staff;
+            if(code === 'B') videoWhite.push(staff);
             else if(code === 'N') videoNight.push(staff);
             else if(code === 'V') { videoNight.push(staff); videoBusiness.push(staff); }
             else if(code === 'S') videoStandby.push(staff);
@@ -1472,7 +1472,7 @@
         if(zheng === "拍" || zheng === "p") photoNight.push("郑楚君");
         else if(zheng === "休") photoRest.push("郑楚君");
 
-        let white = (videoWhite && !isWeekend) ? [videoWhite] : [];
+        let white = (!isWeekend) ? videoWhite : [];
         let night = [...videoNight, ...photoNight];
         let standby = [...videoStandby, ...photoStandby];
         let rest = [...videoRest, ...photoRest];
