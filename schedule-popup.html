@@ -702,10 +702,6 @@
             try {
                 const stored = localStorage.getItem('holidaySettings');
                 if(stored) {
-                    // 先重置到原始周期，避免累积修改导致的问题
-                    VIDEO_CYCLE = JSON.parse(JSON.stringify(ORIGINAL_VIDEO));
-                    GRAPHIC_CYCLE = JSON.parse(JSON.stringify(ORIGINAL_GRAPHIC));
-                    
                     const holidaySettings = JSON.parse(stored);
                     holidaySettings.forEach(setting => {
                         const date = new Date(setting.date);

@@ -1475,9 +1475,23 @@
     let VIDEO_CYCLE = buildVideoCycle();
     let GRAPHIC_CYCLE = buildGraphicCycle();
     
-    // 保存原始周期用于重置
+    // 保存原始周期用于重置（保存默认生成的周期，不包含任何修改）
     const ORIGINAL_VIDEO_CYCLE = JSON.parse(JSON.stringify(VIDEO_CYCLE));
     const ORIGINAL_GRAPHIC_CYCLE = JSON.parse(JSON.stringify(GRAPHIC_CYCLE));
+    
+    // 从 localStorage 加载保存的排班周期（包含之前的请假/调班等修改）
+    const savedSchedule = localStorage.getItem('scheduleCycle');
+    if (savedSchedule) {
+        try {
+            const saved = JSON.parse(savedSchedule);
+            if (saved.video && saved.graphic) {
+                VIDEO_CYCLE = saved.video;
+                GRAPHIC_CYCLE = saved.graphic;
+            }
+        } catch (e) {
+            console.warn('加载保存的排班周期失败，使用默认值');
+        }
+    }
     
     const BASE_START = new Date(2026, 3, 15);
     
@@ -3326,10 +3340,6 @@
     
     // 应用集体休假设置到排班周期
     function applyHolidaySettings() {
-        // 先重置到原始周期，避免累积修改导致的问题
-        VIDEO_CYCLE = JSON.parse(JSON.stringify(ORIGINAL_VIDEO_CYCLE));
-        GRAPHIC_CYCLE = JSON.parse(JSON.stringify(ORIGINAL_GRAPHIC_CYCLE));
-        
         holidaySettings.forEach(setting => {
             const date = new Date(setting.date);
             const dayIndex = getCycleIndex(date);
