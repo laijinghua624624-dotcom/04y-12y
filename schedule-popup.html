@@ -463,6 +463,10 @@
         let VIDEO_CYCLE = buildVideoCycle();
         let GRAPHIC_CYCLE = buildGraphicCycle();
         
+        // 保存原始周期用于重置（在加载 localStorage 之前保存）
+        const ORIGINAL_VIDEO = JSON.parse(JSON.stringify(VIDEO_CYCLE));
+        const ORIGINAL_GRAPHIC = JSON.parse(JSON.stringify(GRAPHIC_CYCLE));
+        
         const savedSchedule = localStorage.getItem('scheduleCycle');
         if (savedSchedule) {
             try {
@@ -475,9 +479,6 @@
                 console.warn('加载保存的排班周期失败，使用默认值');
             }
         }
-        
-        const ORIGINAL_VIDEO = VIDEO_CYCLE.map(d => ({type:d.type, assignments:{...d.assignments}}));
-        const ORIGINAL_GRAPHIC = GRAPHIC_CYCLE.map(d => ({zhong:d.zhong, zheng:d.zheng, overtimeNote:d.overtimeNote}));
 
         function getCycleIndex(date) {
             const diffDays = Math.floor((date - BASE_START) / (1000*60*60*24));
@@ -701,6 +702,10 @@
             try {
                 const stored = localStorage.getItem('holidaySettings');
                 if(stored) {
+                    // 先重置到原始周期，避免累积修改导致的问题
+                    VIDEO_CYCLE = JSON.parse(JSON.stringify(ORIGINAL_VIDEO));
+                    GRAPHIC_CYCLE = JSON.parse(JSON.stringify(ORIGINAL_GRAPHIC));
+                    
                     const holidaySettings = JSON.parse(stored);
                     holidaySettings.forEach(setting => {
                         const date = new Date(setting.date);
