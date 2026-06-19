@@ -3349,6 +3349,10 @@
     
     // 应用集体休假设置到排班周期
     function applyHolidaySettings() {
+        // 先重置到原始周期，避免累积修改导致的问题
+        VIDEO_CYCLE = JSON.parse(JSON.stringify(ORIGINAL_VIDEO_CYCLE));
+        GRAPHIC_CYCLE = JSON.parse(JSON.stringify(ORIGINAL_GRAPHIC_CYCLE));
+        
         holidaySettings.forEach(setting => {
             const date = new Date(setting.date);
             const dayIndex = getCycleIndex(date);
@@ -3425,9 +3429,8 @@
         updateCurrentTime();
         setInterval(updateCurrentTime, 1000);
         
-        // 加载并应用集体休假设置
+        // 加载集体休假设置（不重新应用，因为 scheduleCycle 已包含正确状态）
         holidaySettings = JSON.parse(localStorage.getItem('holidaySettings') || '[]');
-        applyHolidaySettings();
         
         // 渲染今日排班
         renderTodaySchedule();
