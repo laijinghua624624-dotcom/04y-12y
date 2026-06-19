@@ -1287,22 +1287,26 @@
         <div id="holidayArea" style="display: none;">
             <div style="margin-bottom: 16px; padding: 12px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 10px; border: 1px solid #f59e0b;">
                 <div style="font-weight: 600; color: #92400e; margin-bottom: 4px;">🏖️ 集体休假设置</div>
-                <div style="font-size: 0.8rem; color: #b45309;">设置集体休假期间，每天只需安排一人值班</div>
+                <div style="font-size: 0.8rem; color: #b45309;">设置集体休假期间，勾选人员为值班，未勾选人员为休息</div>
             </div>
 
-            <div class="form-group">
-                <label for="holidayStartDate">开始日期</label>
-                <input type="date" id="holidayStartDate" required>
-            </div>
-
-            <div class="form-group">
-                <label for="holidayEndDate">结束日期</label>
-                <input type="date" id="holidayEndDate" required>
+            <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                    <label for="holidayStartDate">开始日期</label>
+                    <input type="date" id="holidayStartDate" required>
+                </div>
+                <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                    <label for="holidayEndDate">结束日期</label>
+                    <input type="date" id="holidayEndDate" required>
+                </div>
             </div>
 
             <div id="holidayDutyList" style="margin: 16px 0;">
-                <div style="font-weight: 600; margin-bottom: 8px; color: #374151;">📋 值班人员安排</div>
-                <div id="holidayDutyItems" style="max-height: 300px; overflow-y: auto;"></div>
+                <div style="font-weight: 600; margin-bottom: 8px; color: #374151; display: flex; justify-content: space-between; align-items: center;">
+                    <span>📋 值班人员安排</span>
+                    <span style="font-size: 0.75rem; color: #6b7280; font-weight: normal;">✅ = 值班  ⬜ = 休息</span>
+                </div>
+                <div id="holidayDutyItems" style="max-height: 400px; overflow-y: auto;"></div>
             </div>
 
             <!-- 当前集体休假设置 -->
@@ -1511,15 +1515,17 @@
         }
 
         let photoNight = [], photoStandby = [], photoRest = [];
-        let graphicStatus = {}; // 保存平面组状态用于显示 { 钟豪昌: "拍"/"p"/"休", 郑楚君: "拍"/"p"/"休" }
+        let graphicStatus = {}; // 保存平面组状态用于显示 { 钟豪昌: "拍"/"p"/"休"/"值班", 郑楚君: "拍"/"p"/"休"/"值班" }
         const zhong = graphicDay.zhong, zheng = graphicDay.zheng;
         graphicStatus['钟豪昌'] = zhong;
         graphicStatus['郑楚君'] = zheng;
-        // 平面组：拍/p 显示在夜班列，休显示在休息列
+        // 平面组：拍/p 显示在夜班列，休显示在休息列，值班显示在待命列
         if(zhong === "拍" || zhong === "p") photoNight.push("钟豪昌");
         else if(zhong === "休") photoRest.push("钟豪昌");
+        else if(zhong === "值班") photoStandby.push("钟豪昌");
         if(zheng === "拍" || zheng === "p") photoNight.push("郑楚君");
         else if(zheng === "休") photoRest.push("郑楚君");
+        else if(zheng === "值班") photoStandby.push("郑楚君");
 
         let white = (!isWeekend) ? videoWhite : [];
         let night = [...videoNight, ...photoNight];
@@ -3135,14 +3141,14 @@
         }
     }
     
-    // 生成值班人员列表
+    // 生成值班人员列表（使用复选框）
     function generateHolidayDutyList() {
         const startDate = document.getElementById('holidayStartDate').value;
         const endDate = document.getElementById('holidayEndDate').value;
         const container = document.getElementById('holidayDutyItems');
         
         if (!startDate || !endDate) {
-            container.innerHTML = '<div style="color: #9ca3af; font-size: 0.85rem;">请选择开始和结束日期</div>';
+            container.innerHTML = '<div style="color: #9ca3af; font-size: 0.85rem; padding: 12px;">请选择开始和结束日期</div>';
             return;
         }
         
@@ -3150,11 +3156,11 @@
         const end = new Date(endDate);
         
         if (start > end) {
-            container.innerHTML = '<div style="color: #ef4444; font-size: 0.85rem;">❌ 开始日期不能晚于结束日期</div>';
+            container.innerHTML = '<div style="color: #ef4444; font-size: 0.85rem; padding: 12px;">❌ 开始日期不能晚于结束日期</div>';
             return;
         }
         
-        // 生成日期列表
+        // 生成日期列表（使用复选框）
         let html = '';
         const allStaff = [...videoStaff, ...graphicStaff];
         let currentDate = new Date(start);
@@ -3168,16 +3174,21 @@
             
             // 检查是否已有设置
             const existing = holidaySettings.find(h => h.date === dateStr);
-            const defaultStaffs = existing ? (existing.staffs || (existing.staff ? [existing.staff] : [])) : [allStaff[index % allStaff.length]];
+            const defaultStaffs = existing ? (existing.staffs || (existing.staff ? [existing.staff] : [])) : [];
             
             html += `
-                <div style="display: flex; align-items: center; padding: 8px 12px; background: ${index % 2 === 0 ? '#f9fafb' : '#ffffff'}; border-radius: 8px; margin-bottom: 4px;">
-                    <div style="flex: 0 0 120px; font-weight: 500; color: #374151;">
-                        ${month}月${day}日 (周${dayOfWeek})
+                <div style="padding: 10px 12px; background: ${index % 2 === 0 ? '#f9fafb' : '#ffffff'}; border-radius: 8px; margin-bottom: 6px; border: 1px solid #e5e7eb;">
+                    <div style="font-weight: 600; color: #374151; margin-bottom: 8px; font-size: 0.9rem;">
+                        📅 ${month}月${day}日 (周${dayOfWeek})
                     </div>
-                    <select id="duty_${dateStr}" multiple style="flex: 1; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.85rem; min-height: 80px;">
-                        ${allStaff.map(s => `<option value="${s}" ${defaultStaffs.includes(s) ? 'selected' : ''}>${s}</option>`).join('')}
-                    </select>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        ${allStaff.map(s => `
+                            <label style="display: flex; align-items: center; padding: 4px 10px; background: #ffffff; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 0.85rem; user-select: none;">
+                                <input type="checkbox" name="duty_${dateStr}" value="${s}" ${defaultStaffs.includes(s) ? 'checked' : ''} style="margin-right: 6px; cursor: pointer;">
+                                <span>${s}</span>
+                            </label>
+                        `).join('')}
+                    </div>
                 </div>
             `;
             
@@ -3251,13 +3262,8 @@
     
     // 提交集体休假设置
     function submitHolidaySettings() {
-        alert('✅ submitHolidaySettings 函数已触发');
-        console.log('✅ submitHolidaySettings 函数已触发');
-        
         const startDate = document.getElementById('holidayStartDate').value;
         const endDate = document.getElementById('holidayEndDate').value;
-        
-        console.log('开始日期:', startDate, '结束日期:', endDate);
         
         if (!startDate || !endDate) {
             showNotification('warning', '⚠️ 请选择开始和结束日期');
@@ -3272,27 +3278,24 @@
             return;
         }
         
-        // 收集每天的值班人员
+        // 收集每天的值班人员（从复选框获取）
         let currentDate = new Date(start);
         const newSettings = [];
         
         while (currentDate <= end) {
             const dateStr = currentDate.toISOString().split('T')[0];
-            const selectEl = document.getElementById(`duty_${dateStr}`);
-            console.log('查找元素:', `duty_${dateStr}`, selectEl ? '找到' : '未找到');
-            if (selectEl) {
-                // 支持多选：获取所有选中的值
-                const selectedStaff = Array.from(selectEl.selectedOptions).map(o => o.value);
-                newSettings.push({
-                    date: dateStr,
-                    staffs: selectedStaff,
-                    type: 'holiday'
-                });
-            }
+            // 获取该日期下所有选中的复选框
+            const checkboxes = document.querySelectorAll(`input[name="duty_${dateStr}"]:checked`);
+            const selectedStaff = Array.from(checkboxes).map(cb => cb.value);
+            
+            newSettings.push({
+                date: dateStr,
+                staffs: selectedStaff,
+                type: 'holiday'
+            });
+            
             currentDate.setDate(currentDate.getDate() + 1);
         }
-        
-        console.log('收集到的设置:', newSettings);
         
         if (newSettings.length === 0) {
             showNotification('error', '❌ 未找到值班人员设置，请重新选择日期');
@@ -3331,16 +3334,16 @@
             const date = new Date(setting.date);
             const dayIndex = getCycleIndex(date);
             
-            if (dayIndex >= 0 && dayIndex < videoCycle.length) {
+            if (dayIndex >= 0 && dayIndex < VIDEO_CYCLE.length) {
                 // 获取值班人员列表（兼容旧数据的 staff 字段）
                 const dutyStaffs = setting.staffs || (setting.staff ? [setting.staff] : []);
                 
                 // 将所有视频组员工设为休息，只有值班人员设为待命
                 videoStaff.forEach(staff => {
                     if (dutyStaffs.includes(staff)) {
-                        videoCycle[dayIndex].assignments[staff] = 'S'; // 待命
+                        VIDEO_CYCLE[dayIndex].assignments[staff] = 'S'; // 待命
                     } else {
-                        videoCycle[dayIndex].assignments[staff] = 'R'; // 休息
+                        VIDEO_CYCLE[dayIndex].assignments[staff] = 'R'; // 休息
                     }
                 });
                 
@@ -3348,19 +3351,19 @@
                 graphicStaff.forEach(staff => {
                     if (dutyStaffs.includes(staff)) {
                         // 平面组用特殊标记
-                        if (!graphicCycle[dayIndex]) graphicCycle[dayIndex] = { zhong: "休", zheng: "休", overtimeNote: "" };
+                        if (!GRAPHIC_CYCLE[dayIndex]) GRAPHIC_CYCLE[dayIndex] = { zhong: "休", zheng: "休", overtimeNote: "" };
                         if (staff === "钟豪昌") {
-                            graphicCycle[dayIndex].zhong = "值班";
+                            GRAPHIC_CYCLE[dayIndex].zhong = "值班";
                         } else {
-                            graphicCycle[dayIndex].zheng = "值班";
+                            GRAPHIC_CYCLE[dayIndex].zheng = "值班";
                         }
                     } else {
                         // 非值班人员设为休息
-                        if (!graphicCycle[dayIndex]) graphicCycle[dayIndex] = { zhong: "休", zheng: "休", overtimeNote: "" };
+                        if (!GRAPHIC_CYCLE[dayIndex]) GRAPHIC_CYCLE[dayIndex] = { zhong: "休", zheng: "休", overtimeNote: "" };
                         if (staff === "钟豪昌") {
-                            graphicCycle[dayIndex].zhong = "休";
+                            GRAPHIC_CYCLE[dayIndex].zhong = "休";
                         } else {
-                            graphicCycle[dayIndex].zheng = "休";
+                            GRAPHIC_CYCLE[dayIndex].zheng = "休";
                         }
                     }
                 });

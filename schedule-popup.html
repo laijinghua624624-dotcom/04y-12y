@@ -553,11 +553,14 @@
 
             // 平面组："拍"/"p"都算夜班列显示
             const photoNight = [];
+            const photoStandby = [];
             const photoRest = [];
             if(graphicDay.zhong === "拍" || graphicDay.zhong === "p") photoNight.push({name:"钟豪昌", state: graphicDay.zhong});
             else if(graphicDay.zhong === "休") photoRest.push("钟豪昌");
+            else if(graphicDay.zhong === "值班") photoStandby.push("钟豪昌");
             if(graphicDay.zheng === "拍" || graphicDay.zheng === "p") photoNight.push({name:"郑楚君", state: graphicDay.zheng});
             else if(graphicDay.zheng === "休") photoRest.push("郑楚君");
+            else if(graphicDay.zheng === "值班") photoStandby.push("郑楚君");
 
             // 今日请假记录
             const todayStr = formatDate(today);
@@ -571,7 +574,10 @@
                 ...photoNight.filter(p => !leaveStaffNames.includes(p.name))
             ];
             const finalBusiness = businessVideo.filter(n => !leaveStaffNames.includes(n));
-            const finalStandby = standby.filter(n => !leaveStaffNames.includes(n));
+            const finalStandby = [
+                ...standby.filter(n => !leaveStaffNames.includes(n)),
+                ...photoStandby.filter(n => !leaveStaffNames.includes(n))
+            ];
             const finalRest = [
                 ...restVideo.filter(n => !leaveStaffNames.includes(n)),
                 ...photoRest.filter(n => !leaveStaffNames.includes(n))
@@ -698,14 +704,36 @@
                     const holidaySettings = JSON.parse(stored);
                     holidaySettings.forEach(setting => {
                         const date = new Date(setting.date);
-                        const dayIndex = getDayIndex(date);
+                        const dayIndex = getCycleIndex(date);
                         if (dayIndex >= 0 && dayIndex < VIDEO_CYCLE.length) {
-                            // 将所有员工设为休息，只有值班人员设为待命
+                            // 获取值班人员列表（兼容旧数据的 staff 字段）
+                            const dutyStaffs = setting.staffs || (setting.staff ? [setting.staff] : []);
+                            
+                            // 将所有视频组员工设为休息，只有值班人员设为待命
                             VIDEO_STAFF.forEach(staff => {
-                                if (staff === setting.staff) {
+                                if (dutyStaffs.includes(staff)) {
                                     VIDEO_CYCLE[dayIndex].assignments[staff] = 'S'; // 待命
                                 } else {
                                     VIDEO_CYCLE[dayIndex].assignments[staff] = 'R'; // 休息
+                                }
+                            });
+                            
+                            // 平面组处理
+                            photoStaff.forEach(staff => {
+                                if (dutyStaffs.includes(staff)) {
+                                    if (!GRAPHIC_CYCLE[dayIndex]) GRAPHIC_CYCLE[dayIndex] = { zhong: "休", zheng: "休", overtimeNote: "" };
+                                    if (staff === "钟豪昌") {
+                                        GRAPHIC_CYCLE[dayIndex].zhong = "值班";
+                                    } else {
+                                        GRAPHIC_CYCLE[dayIndex].zheng = "值班";
+                                    }
+                                } else {
+                                    if (!GRAPHIC_CYCLE[dayIndex]) GRAPHIC_CYCLE[dayIndex] = { zhong: "休", zheng: "休", overtimeNote: "" };
+                                    if (staff === "钟豪昌") {
+                                        GRAPHIC_CYCLE[dayIndex].zhong = "休";
+                                    } else {
+                                        GRAPHIC_CYCLE[dayIndex].zheng = "休";
+                                    }
                                 }
                             });
                         }
