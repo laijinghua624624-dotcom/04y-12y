@@ -2251,6 +2251,10 @@
             leaveRecords.splice(recordIndex, 1);
         }
         saveLeaveRecordsToFirebase();
+        
+        // 重新应用集体休假设置，确保不会被其他操作覆盖
+        applyHolidaySettings();
+        
         saveScheduleCycle();
 
         // 7. 刷新所有界面
@@ -2609,8 +2613,13 @@
         // 更新排班数据：将请假人员从原班次移除，添加到休息&请假
         updateScheduleOnLeave(date, staff, coverStaff);
         
-        showNotification('success', `✅ 请假申请提交成功！\n请假人员：${staff}\n日期：${date}\n顶班人员：${coverStaff.join('、') || '无'}`);
+        // 重新应用集体休假设置，确保不会被其他操作覆盖
+        applyHolidaySettings();
         
+        // 保存排班周期
+        saveScheduleCycle();
+        
+        showNotification('success', `✅ 请假申请提交成功！\n请假人员：${staff}\n日期：${date}\n顶班人员：${coverStaff.join('、') || '无'}`);
         // 刷新请假记录列表
         renderLeaveRecords();
         
