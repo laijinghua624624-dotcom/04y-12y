@@ -3248,8 +3248,12 @@
     
     // 提交集体休假设置
     function submitHolidaySettings() {
+        console.log('✅ submitHolidaySettings 函数已触发');
+        
         const startDate = document.getElementById('holidayStartDate').value;
         const endDate = document.getElementById('holidayEndDate').value;
+        
+        console.log('开始日期:', startDate, '结束日期:', endDate);
         
         if (!startDate || !endDate) {
             showNotification('warning', '⚠️ 请选择开始和结束日期');
@@ -3271,6 +3275,7 @@
         while (currentDate <= end) {
             const dateStr = currentDate.toISOString().split('T')[0];
             const selectEl = document.getElementById(`duty_${dateStr}`);
+            console.log('查找元素:', `duty_${dateStr}`, selectEl ? '找到' : '未找到');
             if (selectEl) {
                 newSettings.push({
                     date: dateStr,
@@ -3279,6 +3284,13 @@
                 });
             }
             currentDate.setDate(currentDate.getDate() + 1);
+        }
+        
+        console.log('收集到的设置:', newSettings);
+        
+        if (newSettings.length === 0) {
+            showNotification('error', '❌ 未找到值班人员设置，请重新选择日期');
+            return;
         }
         
         // 合并到现有设置（覆盖相同日期）
@@ -3300,6 +3312,9 @@
         // 刷新显示
         renderCurrentHolidaySettings();
         update();
+        
+        // 关闭弹窗
+        closeLeaveModal();
         
         showNotification('success', `✅ 已设置 ${newSettings.length} 天的集体休假值班安排`);
     }
@@ -3399,6 +3414,15 @@
             e.preventDefault();
             submitLeaveRequest();
         });
+
+        // 添加集体休假确认按钮点击事件
+        const submitHolidayBtn = document.getElementById('submitHolidayBtn');
+        if (submitHolidayBtn) {
+            submitHolidayBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                submitHolidaySettings();
+            });
+        }
     }
 
     document.getElementById("prevMonthBtn").onclick = () => {
