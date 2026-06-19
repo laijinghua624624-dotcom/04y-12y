@@ -690,6 +690,30 @@
             } catch(e) { console.warn(e); }
         }
 
+        /* ===== 加载集体休假设置（来自主页面的 localStorage） ===== */
+        function loadHolidaySettings() {
+            try {
+                const stored = localStorage.getItem('holidaySettings');
+                if(stored) {
+                    const holidaySettings = JSON.parse(stored);
+                    holidaySettings.forEach(setting => {
+                        const date = new Date(setting.date);
+                        const dayIndex = getDayIndex(date);
+                        if (dayIndex >= 0 && dayIndex < VIDEO_CYCLE.length) {
+                            // 将所有员工设为休息，只有值班人员设为待命
+                            VIDEO_STAFF.forEach(staff => {
+                                if (staff === setting.staff) {
+                                    VIDEO_CYCLE[dayIndex].assignments[staff] = 'S'; // 待命
+                                } else {
+                                    VIDEO_CYCLE[dayIndex].assignments[staff] = 'R'; // 休息
+                                }
+                            });
+                        }
+                    });
+                }
+            } catch(e) { console.warn(e); }
+        }
+
         /* ===== 自动缩放：1920x1080设计稿自适应任意屏幕 ===== */
         const DESIGN_W = 1920;
         const DESIGN_H = 1080;
@@ -710,15 +734,17 @@
         function init() {
             applyScale();
             loadLeaveRecords();
+            loadHolidaySettings();
             updateDateTime();
             renderSchedule();
             setInterval(updateDateTime, 1000);
-            setInterval(() => { loadLeaveRecords(); renderSchedule(); }, 15000);
+            setInterval(() => { loadLeaveRecords(); loadHolidaySettings(); renderSchedule(); }, 15000);
         }
         window.addEventListener('resize', applyScale);
         window.addEventListener('orientationchange', () => setTimeout(applyScale, 200));
         window.addEventListener('storage', (e) => {
             if(e.key === 'leaveRecords') { loadLeaveRecords(); renderSchedule(); }
+            if(e.key === 'holidaySettings') { loadHolidaySettings(); renderSchedule(); }
         });
         window.onload = init;
     </script>
