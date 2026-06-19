@@ -3168,15 +3168,15 @@
             
             // 检查是否已有设置
             const existing = holidaySettings.find(h => h.date === dateStr);
-            const defaultStaff = existing ? existing.staff : allStaff[index % allStaff.length];
+            const defaultStaffs = existing ? (existing.staffs || (existing.staff ? [existing.staff] : [])) : [allStaff[index % allStaff.length]];
             
             html += `
                 <div style="display: flex; align-items: center; padding: 8px 12px; background: ${index % 2 === 0 ? '#f9fafb' : '#ffffff'}; border-radius: 8px; margin-bottom: 4px;">
                     <div style="flex: 0 0 120px; font-weight: 500; color: #374151;">
                         ${month}月${day}日 (周${dayOfWeek})
                     </div>
-                    <select id="duty_${dateStr}" style="flex: 1; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.85rem;">
-                        ${allStaff.map(s => `<option value="${s}" ${s === defaultStaff ? 'selected' : ''}>${s}</option>`).join('')}
+                    <select id="duty_${dateStr}" multiple style="flex: 1; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.85rem; min-height: 80px;">
+                        ${allStaff.map(s => `<option value="${s}" ${defaultStaffs.includes(s) ? 'selected' : ''}>${s}</option>`).join('')}
                     </select>
                 </div>
             `;
@@ -3235,7 +3235,10 @@
                 <div style="margin-bottom: 8px; padding: 8px 12px; background: #ffffff; border-radius: 8px; border: 1px solid #d1fae5;">
                     <div style="font-weight: 500; color: #065f46;">🏖️ ${dateRange}</div>
                     <div style="font-size: 0.8rem; color: #047857; margin-top: 4px;">
-                        值班：${group.staff.map(s => s.staff).join('、')}
+                        值班：${group.staff.map(s => {
+                            const staffs = s.staffs || (s.staff ? [s.staff] : []);
+                            return staffs.join('、');
+                        }).filter((v, i, a) => a.indexOf(v) === i).join('、')}
                     </div>
                     <button onclick="clearHolidayRange('${group.startDate}', '${group.endDate}')" style="margin-top: 6px; padding: 4px 10px; background: #fee2e2; color: #dc2626; border: none; border-radius: 6px; font-size: 0.75rem; cursor: pointer;">清除</button>
                 </div>
@@ -3278,9 +3281,11 @@
             const selectEl = document.getElementById(`duty_${dateStr}`);
             console.log('查找元素:', `duty_${dateStr}`, selectEl ? '找到' : '未找到');
             if (selectEl) {
+                // 支持多选：获取所有选中的值
+                const selectedStaff = Array.from(selectEl.selectedOptions).map(o => o.value);
                 newSettings.push({
                     date: dateStr,
-                    staff: selectEl.value,
+                    staffs: selectedStaff,
                     type: 'holiday'
                 });
             }
@@ -3324,26 +3329,38 @@
     function applyHolidaySettings() {
         holidaySettings.forEach(setting => {
             const date = new Date(setting.date);
-            const dayIndex = getDayIndex(date);
+            const dayIndex = getCycleIndex(date);
             
             if (dayIndex >= 0 && dayIndex < videoCycle.length) {
-                // 将所有员工设为休息，只有值班人员设为待命
+                // 获取值班人员列表（兼容旧数据的 staff 字段）
+                const dutyStaffs = setting.staffs || (setting.staff ? [setting.staff] : []);
+                
+                // 将所有视频组员工设为休息，只有值班人员设为待命
                 videoStaff.forEach(staff => {
-                    if (staff === setting.staff) {
+                    if (dutyStaffs.includes(staff)) {
                         videoCycle[dayIndex].assignments[staff] = 'S'; // 待命
                     } else {
                         videoCycle[dayIndex].assignments[staff] = 'R'; // 休息
                     }
                 });
                 
+                // 平面组处理
                 graphicStaff.forEach(staff => {
-                    if (staff === setting.staff) {
+                    if (dutyStaffs.includes(staff)) {
                         // 平面组用特殊标记
                         if (!graphicCycle[dayIndex]) graphicCycle[dayIndex] = { zhong: "休", zheng: "休", overtimeNote: "" };
                         if (staff === "钟豪昌") {
                             graphicCycle[dayIndex].zhong = "值班";
                         } else {
                             graphicCycle[dayIndex].zheng = "值班";
+                        }
+                    } else {
+                        // 非值班人员设为休息
+                        if (!graphicCycle[dayIndex]) graphicCycle[dayIndex] = { zhong: "休", zheng: "休", overtimeNote: "" };
+                        if (staff === "钟豪昌") {
+                            graphicCycle[dayIndex].zhong = "休";
+                        } else {
+                            graphicCycle[dayIndex].zheng = "休";
                         }
                     }
                 });
