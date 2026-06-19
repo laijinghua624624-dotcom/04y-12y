@@ -3112,15 +3112,26 @@
         // 显示当前集体休假设置
         renderCurrentHolidaySettings();
         
+        // 初始化值班人员列表提示
+        const container = document.getElementById('holidayDutyItems');
+        if (container) {
+            container.innerHTML = '<div style="color: #9ca3af; font-size: 0.85rem; padding: 12px;">请选择开始和结束日期后，系统会自动生成值班人员安排列表</div>';
+        }
+        
         // 监听日期变化
         const startDateEl = document.getElementById('holidayStartDate');
         const endDateEl = document.getElementById('holidayEndDate');
         
         if (startDateEl && endDateEl) {
-            startDateEl.removeEventListener('change', generateHolidayDutyList);
-            endDateEl.removeEventListener('change', generateHolidayDutyList);
-            startDateEl.addEventListener('change', generateHolidayDutyList);
-            endDateEl.addEventListener('change', generateHolidayDutyList);
+            // 移除旧的事件监听器（通过克隆节点方式）
+            const newStartDateEl = startDateEl.cloneNode(true);
+            const newEndDateEl = endDateEl.cloneNode(true);
+            startDateEl.parentNode.replaceChild(newStartDateEl, startDateEl);
+            endDateEl.parentNode.replaceChild(newEndDateEl, endDateEl);
+            
+            // 添加新的事件监听器
+            newStartDateEl.addEventListener('change', generateHolidayDutyList);
+            newEndDateEl.addEventListener('change', generateHolidayDutyList);
         }
     }
     
