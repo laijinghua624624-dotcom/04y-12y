@@ -993,11 +993,7 @@
             <span>颜世才</span>
             <span>伍鹏宁</span>
         </div>
-        <div class="group">
-            <h3>📷 平面组</h3>
-            <span>钟豪昌</span>
-            <span>郑楚君</span>
-        </div>
+
     </div>
 
     <div class="toolbar">
@@ -1141,10 +1137,7 @@
                         <option value="颜世才">🎥 颜世才</option>
                         <option value="伍鹏宁">🎥 伍鹏宁</option>
                     </optgroup>
-                    <optgroup label="平面组">
-                        <option value="钟豪昌">📷 钟豪昌</option>
-                        <option value="郑楚君">📷 郑楚君</option>
-                    </optgroup>
+
                 </select>
             </div>
 
@@ -1211,10 +1204,7 @@
                         <option value="颜世才">🎥 颜世才</option>
                         <option value="伍鹏宁">🎥 伍鹏宁</option>
                     </optgroup>
-                    <optgroup label="平面组">
-                        <option value="钟豪昌">📷 钟豪昌</option>
-                        <option value="郑楚君">📷 郑楚君</option>
-                    </optgroup>
+
                 </select>
             </div>
 
@@ -1368,7 +1358,6 @@
 <script>
     // ----------------------------- 人员配置 ---------------------------------
     const videoStaff = ["赖京华", "冯健材", "梁元科", "颜世才", "伍鹏宁"];
-    const graphicStaff = ["钟豪昌", "郑楚君"];
     
     function buildVideoCycle() {
         const allVideo = [...videoStaff];
@@ -1394,99 +1383,18 @@
         }));
     }
     
-    // ----------------------------- 平面组28天周期（每人休8天，含2次连休）---------------------------------
-    function buildGraphicCycle() {
-        let cycle = new Array(28);
-        // 初始化全工作（拍/p交替基准）
-        for(let i=0;i<28;i++) cycle[i] = { zhong: "拍", zheng: "p", overtimeNote: "" };
-        
-        // 1. 固定两次连休（每人4天）
-        // 钟豪昌：周六+周日  (索引3周六,4周日) 和 (17周六,18周日)
-        cycle[3].zhong = "休"; cycle[4].zhong = "休";
-        cycle[17].zhong = "休"; cycle[18].zhong = "休";
-        // 郑楚君：周日+周一  (索引11周日,12周一) 和 (24周日,25周一)
-        cycle[11].zheng = "休"; cycle[12].zheng = "休";
-        cycle[24].zheng = "休"; cycle[25].zheng = "休";
-        
-        // 2. 添加单休（每人额外4天，总休8天），且保证不同时休、不破坏连休模式
-        // 钟豪昌单休日（避开已休日期，且不与郑楚君连休冲突，尽量均匀）
-        const zhongSingle = [6, 9, 14, 21];  // 周二、周五、周三、周三（均非周末，不会造成连续三天休息）
-        // 郑楚君单休日（避开已休日期）
-        const zhengSingle = [0, 7, 15, 22];  // 周三、周三、周三、周三
-        
-        for(let idx of zhongSingle) if(cycle[idx].zhong !== "休") cycle[idx].zhong = "休";
-        for(let idx of zhengSingle) if(cycle[idx].zheng !== "休") cycle[idx].zheng = "休";
-        
-        // 3. 确保两人不同时休息（若冲突，强制将郑的单休改为工作）
-        for(let i=0;i<28;i++) {
-            if(cycle[i].zhong === "休" && cycle[i].zheng === "休") {
-                // 优先保留钟的休息，让郑工作
-                cycle[i].zheng = (i%2===0) ? "拍" : "p";  // 随机但保证互补
-            }
-        }
-        
-        // 4. 填充非休息日的拍/p交替（互补且维持工作平衡）
-        for(let i=0;i<28;i++) {
-            const zhongRest = (cycle[i].zhong === "休");
-            const zhengRest = (cycle[i].zheng === "休");
-            if(zhongRest && !zhengRest) {
-                // 钟休，郑不能休，状态取与前一天郑相反（避免疲劳）
-                if(i>0 && cycle[i-1].zheng !== "休") cycle[i].zheng = (cycle[i-1].zheng === "拍") ? "p" : "拍";
-                else cycle[i].zheng = "拍";
-                continue;
-            }
-            if(!zhongRest && zhengRest) {
-                if(i>0 && cycle[i-1].zhong !== "休") cycle[i].zhong = (cycle[i-1].zhong === "拍") ? "p" : "拍";
-                else cycle[i].zhong = "拍";
-                continue;
-            }
-            if(!zhongRest && !zhengRest) {
-                if(i===0) { cycle[i].zhong = "拍"; cycle[i].zheng = "p"; }
-                else {
-                    let prevZhong = cycle[i-1].zhong;
-                    if(prevZhong !== "休") cycle[i].zhong = (prevZhong === "拍") ? "p" : "拍";
-                    else {
-                        let prevZheng = cycle[i-1].zheng;
-                        cycle[i].zhong = (prevZheng === "拍") ? "p" : "拍";
-                    }
-                    cycle[i].zheng = (cycle[i].zhong === "拍") ? "p" : "拍";
-                }
-            }
-        }
-        
-        // 验证休息总天数
-        let zhongRestCount = cycle.filter(d=>d.zhong==="休").length;
-        let zhengRestCount = cycle.filter(d=>d.zheng==="休").length;
-        console.log(`平面组休息天数: 钟豪昌=${zhongRestCount}天, 郑楚君=${zhengRestCount}天 (应为8天)`);
-        
-        // 特殊日期修正
-        // 4月26日（索引11）：钟豪昌 应该是"拍"而不是"p"
-        if (cycle[11].zhong !== "休") {
-            cycle[11].zhong = "拍";
-        }
-        // 4月29日（索引14）：郑楚君 应该是"拍"而不是"p"
-        if (cycle[14].zheng !== "休") {
-            cycle[14].zheng = "拍";
-        }
-        
-        return cycle;
-    }
-    
     let VIDEO_CYCLE = buildVideoCycle();
-    let GRAPHIC_CYCLE = buildGraphicCycle();
     
     // 保存原始周期用于重置（保存默认生成的周期，不包含任何修改）
     const ORIGINAL_VIDEO_CYCLE = JSON.parse(JSON.stringify(VIDEO_CYCLE));
-    const ORIGINAL_GRAPHIC_CYCLE = JSON.parse(JSON.stringify(GRAPHIC_CYCLE));
     
     // 从 localStorage 加载保存的排班周期（包含之前的请假/调班等修改）
     const savedSchedule = localStorage.getItem('scheduleCycle');
     if (savedSchedule) {
         try {
             const saved = JSON.parse(savedSchedule);
-            if (saved.video && saved.graphic) {
+            if (saved.video) {
                 VIDEO_CYCLE = saved.video;
-                GRAPHIC_CYCLE = saved.graphic;
             }
         } catch (e) {
             console.warn('加载保存的排班周期失败，使用默认值');
@@ -1505,7 +1413,6 @@
     function getDailySchedule(date) {
         const idx = getCycleIndex(date);
         const videoDay = VIDEO_CYCLE[idx];
-        const graphicDay = GRAPHIC_CYCLE[idx];
         const weekDay = date.getDay();
         const isWeekend = (weekDay === 0 || weekDay === 1);
 
@@ -1519,29 +1426,14 @@
             else if(code === 'R') videoRest.push(staff);
         }
 
-        let photoNight = [], photoStandby = [], photoRest = [];
-        let graphicStatus = {}; // 保存平面组状态用于显示 { 钟豪昌: "拍"/"p"/"休"/"值班", 郑楚君: "拍"/"p"/"休"/"值班" }
-        const zhong = graphicDay.zhong, zheng = graphicDay.zheng;
-        graphicStatus['钟豪昌'] = zhong;
-        graphicStatus['郑楚君'] = zheng;
-        // 平面组：拍/p 显示在夜班列，休显示在休息列，值班显示在待命列
-        if(zhong === "拍" || zhong === "p") photoNight.push("钟豪昌");
-        else if(zhong === "休") photoRest.push("钟豪昌");
-        else if(zhong === "值班") photoStandby.push("钟豪昌");
-        if(zheng === "拍" || zheng === "p") photoNight.push("郑楚君");
-        else if(zheng === "休") photoRest.push("郑楚君");
-        else if(zheng === "值班") photoStandby.push("郑楚君");
-
         let white = (!isWeekend) ? videoWhite : [];
-        let night = [...videoNight, ...photoNight];
-        let standby = [...videoStandby, ...photoStandby];
-        let rest = [...videoRest, ...photoRest];
+        let night = [...videoNight];
+        let standby = [...videoStandby];
+        let rest = [...videoRest];
 
         return {
             white, night, standby, rest,
             videoBusiness,
-            graphicStatus, // 平面组状态，用于渲染时显示 拍/p 后缀
-            graphicOvertime: graphicDay.overtimeNote,
             isWeekend
         };
     }
@@ -1603,39 +1495,21 @@
             }).join('')}</div>` : '<span style="color:#9ca3af;">—</span>';
             let nightHtml = '';
             if(s.night.length) {
-                const vNight = s.night.filter(n=>videoStaff.includes(n)).map(v=>{
+                nightHtml = `<div class="staff-list">${s.night.map(v=>{
                     const isCover = coverStaffNames.includes(v);
                     const isBiz = s.videoBusiness && s.videoBusiness.includes(v);
                     const coverBadge = isCover ? ' 🔄' : '';
                     const bizBadge = isBiz ? ' ✈️' : '';
                     return `<span class="staff-tag video">🎥 ${v}${coverBadge}${bizBadge}</span>`;
-                }).join('');
-                // 平面组在夜班列显示（用 graphicStatus 取状态）
-                const pNight = s.night.filter(n=>n === '钟豪昌' || n === '郑楚君').map(name => {
-                    const status = s.graphicStatus ? s.graphicStatus[name] : '拍';
-                    const icon = status === 'p' ? '✏️' : '📷';
-                    const suffix = status === 'p' ? '(p)' : '';
-                    const isCover = coverStaffNames.includes(name);
-                    const coverBadge = isCover ? ' 🔄' : '';
-                    const isBiz = s.graphicOvertime && s.graphicOvertime.includes('出差');
-                    const bizBadge = isBiz ? ' ✈️' : '';
-                    return `<span class="staff-tag photo">${icon} ${name}${suffix}${coverBadge}${bizBadge}</span>`;
-                }).join('');
-                nightHtml = `<div class="staff-list">${vNight} ${pNight}</div>`;
+                }).join('')}</div>`;
             } else nightHtml = '<span style="color:#9ca3af;">—</span>';
             let standbyHtml = '';
             if(s.standby.length) {
-                const vStand = s.standby.filter(n=>videoStaff.includes(n)).map(v=>{
+                standbyHtml = `<div class="staff-list">${s.standby.map(v=>{
                     const isCover = coverStaffNames.includes(v);
                     const coverBadge = isCover ? ' 🔄' : '';
                     return `<span class="staff-tag video">🎥 ${v}${coverBadge}</span>`;
-                }).join('');
-                const pStand = s.standby.filter(n=>n==="钟豪昌"||n==="郑楚君").map(p=>{
-                    const isCover = coverStaffNames.includes(p);
-                    const coverBadge = isCover ? ' 🔄' : '';
-                    return `<span class="staff-tag photo">✏️ ${p}(p)${coverBadge}</span>`;
-                }).join('');
-                standbyHtml = `<div class="staff-list">${vStand} ${pStand}</div>`;
+                }).join('')}</div>`;
             } else standbyHtml = '<span style="color:#9ca3af;">—</span>';
             let restHtml = '';
             if(s.rest.length || dayLeaves.length) {
@@ -1662,15 +1536,14 @@
                 // 过滤休息人员：如果已经在请假列表或顶班列表中，就不重复显示
                 const filteredRest = s.rest.filter(n => !leaveStaffNames.includes(n) && !coverStaffNames.includes(n));
 
-                const vRest = filteredRest.filter(n=>videoStaff.includes(n)).map(v=>`<span class="staff-tag rest">🎥 ${v}</span>`).join('');
-                const pRest = filteredRest.filter(n=>n==="钟豪昌"||n==="郑楚君").map(p=>`<span class="staff-tag rest">📷 ${p}</span>`).join('');
+                const vRest = filteredRest.map(v=>`<span class="staff-tag rest">🎥 ${v}</span>`).join('');
                 const leaveHtml = filteredDayLeaves.map(l => {
                     const isVideo = videoStaff.includes(l.staff);
                     const icon = isVideo ? '🎥' : '📷';
                     const leaveIcon = getLeaveIcon(l.reason);
                     return `<span class="staff-tag rest" style="border-left: 3px solid #f59e0b;">${leaveIcon} ${icon} ${l.staff}</span>`;
                 }).join('');
-                restHtml = `<div class="staff-list">${vRest} ${pRest} ${leaveHtml}</div>`;
+                restHtml = `<div class="staff-list">${vRest} ${leaveHtml}</div>`;
             } else restHtml = '<span style="color:#9ca3af;">—</span>';
             
             tbody.innerHTML += `<tr class="${rowClass}">
@@ -1727,9 +1600,8 @@
           if (savedSchedule) {
               try {
                   const saved = JSON.parse(savedSchedule);
-                  if (saved.video && saved.graphic) {
+                  if (saved.video) {
                       VIDEO_CYCLE = saved.video;
-                      GRAPHIC_CYCLE = saved.graphic;
                       console.log('✅ 使用 localStorage 保存的排班周期');
                   }
               } catch (e) {
@@ -1800,8 +1672,7 @@
     // 保存排班周期到 localStorage
     function saveScheduleCycle() {
         localStorage.setItem('scheduleCycle', JSON.stringify({
-            video: VIDEO_CYCLE,
-            graphic: GRAPHIC_CYCLE
+            video: VIDEO_CYCLE
         }));
         console.log('✅ 排班周期已保存到 localStorage');
     }
@@ -1909,18 +1780,10 @@
             document.getElementById('todayLeave').innerHTML = '<span class="empty-state">无</span>';
         }
 
-        // 渲染今日出差（独立区域：显示视频组的 V 状态人员和平面组 overtimeNote 标记）
+        // 渲染今日出差（独立区域：显示视频组的 V 状态人员）
         const businessStaff = [];
         if (schedule.videoBusiness && schedule.videoBusiness.length) {
             schedule.videoBusiness.forEach(s => businessStaff.push(`🎥${s}`));
-        }
-        if (schedule.graphicOvertime && schedule.graphicOvertime.includes('出差')) {
-            // 找出当日工作的平面组人员并加上 ✈️
-            for (let name of ['钟豪昌', '郑楚君']) {
-                if (schedule.night.some(n => n.includes(name))) {
-                    businessStaff.push(`📷${name}`);
-                }
-            }
         }
         const businessContainer = document.getElementById('todayBusiness');
         if (businessContainer) {
@@ -2083,15 +1946,7 @@
         });
         html += '</optgroup>';
 
-        // 平面组
-        html += '<optgroup label="📷 平面组">';
-        graphicStaff.forEach(staff => {
-            const record = dayRecords.find(r => r.staff === staff);
-            const leaveIcon = record ? getLeaveIcon(record.reason) : '';
-            const reasonText = record && record.reason ? ' - ' + record.reason : '';
-            html += `<option value="${staff}">${leaveIcon} ${staff}${reasonText}</option>`;
-        });
-        html += '</optgroup>';
+
 
         select.innerHTML = html;
         resultBox.style.display = 'none';
@@ -2189,62 +2044,11 @@
             if (record.originalVideoAssignments) {
                 VIDEO_CYCLE[idx].assignments = {...record.originalVideoAssignments};
             }
-            if (record.originalGraphicZhong !== undefined) {
-                GRAPHIC_CYCLE[idx].zhong = record.originalGraphicZhong;
-            }
-            if (record.originalGraphicZheng !== undefined) {
-                GRAPHIC_CYCLE[idx].zheng = record.originalGraphicZheng;
-            }
+
         }
 
         // 5. 按用户选择把该员工安排到目标班次
-        if (isVideo) {
-            // 视频组：直接写入字母代码 B / N / S / V / R
-            VIDEO_CYCLE[idx].assignments[staff] = targetCode;
-        } else {
-            // 平面组（钟豪昌 / 郑楚君）
-            if (staff === '钟豪昌') {
-                if (targetCode === 'R') {
-                    // 安排到休息
-                    GRAPHIC_CYCLE[idx].zhong = '休';
-                    if (GRAPHIC_CYCLE[idx].overtimeNote === '✈️ 出差') {
-                        GRAPHIC_CYCLE[idx].overtimeNote = '';
-                    }
-                } else {
-                    // 安排到工作状态（白班/夜班/待命/出差）
-                    // 如果当前是休息状态，用基础排班值
-                    if (GRAPHIC_CYCLE[idx].zhong === '休') {
-                        GRAPHIC_CYCLE[idx].zhong = (idx % 2 === 0) ? '拍' : 'p';
-                    }
-                    // 标记出差
-                    if (targetCode === 'V') {
-                        GRAPHIC_CYCLE[idx].overtimeNote = '✈️ 出差';
-                    } else {
-                        if (GRAPHIC_CYCLE[idx].overtimeNote === '✈️ 出差') {
-                            GRAPHIC_CYCLE[idx].overtimeNote = '';
-                        }
-                    }
-                }
-            } else if (staff === '郑楚君') {
-                if (targetCode === 'R') {
-                    GRAPHIC_CYCLE[idx].zheng = '休';
-                    if (GRAPHIC_CYCLE[idx].overtimeNote === '✈️ 出差') {
-                        GRAPHIC_CYCLE[idx].overtimeNote = '';
-                    }
-                } else {
-                    if (GRAPHIC_CYCLE[idx].zheng === '休') {
-                        GRAPHIC_CYCLE[idx].zheng = (idx % 2 === 0) ? 'p' : '拍';
-                    }
-                    if (targetCode === 'V') {
-                        GRAPHIC_CYCLE[idx].overtimeNote = '✈️ 出差';
-                    } else {
-                        if (GRAPHIC_CYCLE[idx].overtimeNote === '✈️ 出差') {
-                            GRAPHIC_CYCLE[idx].overtimeNote = '';
-                        }
-                    }
-                }
-            }
-        }
+        VIDEO_CYCLE[idx].assignments[staff] = targetCode;
 
         // 6. 如果有请假记录，移除它
         if (hasLeaveRecord) {
@@ -2334,8 +2138,6 @@
             const idx = getCycleIndex(scheduleDate);
 
             const originalVideoAssignments = {...VIDEO_CYCLE[idx].assignments};
-            const originalGraphicZhong = GRAPHIC_CYCLE[idx].zhong;
-            const originalGraphicZheng = GRAPHIC_CYCLE[idx].zheng;
 
             leaveRecords.push({
                 date: dateStr,
@@ -2344,25 +2146,10 @@
                 coverStaff: [],
                 timestamp: new Date().toISOString(),
                 originalVideoAssignments,
-                originalGraphicZhong,
-                originalGraphicZheng,
                 idx
             });
 
-            if (isVideo) {
-                VIDEO_CYCLE[idx].assignments[staff] = 'V';
-            } else {
-                if (staff === '钟豪昌') {
-                    if (GRAPHIC_CYCLE[idx].zhong === '休') {
-                        GRAPHIC_CYCLE[idx].zhong = (idx % 2 === 0) ? '拍' : 'p';
-                    }
-                } else if (staff === '郑楚君') {
-                    if (GRAPHIC_CYCLE[idx].zheng === '休') {
-                        GRAPHIC_CYCLE[idx].zheng = (idx % 2 === 0) ? 'p' : '拍';
-                    }
-                }
-                GRAPHIC_CYCLE[idx].overtimeNote = '✈️ 出差';
-            }
+            VIDEO_CYCLE[idx].assignments[staff] = 'V';
 
             appliedCount++;
         }
@@ -2391,7 +2178,7 @@
     }
 
     // 所有人员列表
-    const allStaff = ['赖京华', '冯健材', '梁元科', '颜世才', '伍鹏宁', '钟豪昌', '郑楚君'];
+    const allStaff = ['赖京华', '冯健材', '梁元科', '颜世才', '伍鹏宁'];
     
     // 当选择请假人员时，显示顶班人员选项
     document.getElementById('leaveStaff').addEventListener('change', function() {
@@ -2590,8 +2377,6 @@
         // 保存原始排班状态用于撤销
         const idx = getCycleIndex(scheduleDate);
         const originalVideoAssignments = {...VIDEO_CYCLE[idx].assignments};
-        const originalGraphicZhong = GRAPHIC_CYCLE[idx].zhong;
-        const originalGraphicZheng = GRAPHIC_CYCLE[idx].zheng;
 
         // 添加请假记录（包含原始状态用于撤销）
         leaveRecords.push({
@@ -2601,8 +2386,6 @@
             coverStaff: [...coverStaff],
             timestamp: new Date().toISOString(),
             originalVideoAssignments,
-            originalGraphicZhong,
-            originalGraphicZheng,
             idx
         });
         saveLeaveRecordsToFirebase();
@@ -2673,28 +2456,6 @@
             }
         }
 
-        // ===== 平面组处理 =====
-        // zhong = 钟豪昌的状态 ("拍"/"p"/"休"), zheng = 郑楚君的状态 ("拍"/"p"/"休")
-        const graphicDay = GRAPHIC_CYCLE[idx];
-
-        // 1. 平面组员工请假：置为休息
-        if (leaveStaff === '钟豪昌') graphicDay.zhong = '休';
-        if (leaveStaff === '郑楚君') graphicDay.zheng = '休';
-
-        // 2. 平面组员工顶班：把顶班人员从原位置"挪"到请假位置
-        //    这里的"请假位置"对平面组来说就是该员工位置（平面组都在"夜班"列）
-        //    如果顶班人员原本是休息状态，把他顶到"拍"以显示在夜班列
-        //    注意：如果平面组员工当天自己有请假记录，不安排他顶班
-        if (validCoverStaff.includes('钟豪昌')) {
-            // 如果钟豪昌原本在休假，顶班时让他上班
-            if (graphicDay.zhong === '休') graphicDay.zhong = '拍';
-        }
-        if (validCoverStaff.includes('郑楚君')) {
-            if (graphicDay.zheng === '休') graphicDay.zheng = '拍';
-        }
-
-        // 3. 视频组员工请假，平面组员工来顶班：不改变平面组状态（他们仍按自己"拍/p/休"周期）
-        //    顶班标记通过 leaveRecords 的 coverStaff 自动在显示时加 🔄
     }
 
     // 渲染请假记录列表
@@ -2777,13 +2538,6 @@
         if (record.originalVideoAssignments) {
             VIDEO_CYCLE[record.idx].assignments = {...record.originalVideoAssignments};
         }
-        if (record.originalGraphicZhong !== undefined) {
-            GRAPHIC_CYCLE[record.idx].zhong = record.originalGraphicZhong;
-        }
-        if (record.originalGraphicZheng !== undefined) {
-            GRAPHIC_CYCLE[record.idx].zheng = record.originalGraphicZheng;
-        }
-        
         // 从请假记录中移除
         leaveRecords.splice(index, 1);
         saveLeaveRecordsToFirebase();
@@ -3030,10 +2784,9 @@
     function updateSimpleStats() {
         document.getElementById('simpleStatsMonth').textContent = `${currentYear}年${currentMonth + 1}月`;
         
-        const graphicStaff = ['钟豪昌', '郑楚君'];
         const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
         const stats = {};
-        const allStaff = [...videoStaff, ...graphicStaff];
+        const allStaff = [...videoStaff];
         
         allStaff.forEach(staff => {
             stats[staff] = { work: 0, rest: 0, leave: 0, cover: 0 };
@@ -3175,7 +2928,7 @@
         
         // 生成日期列表（使用复选框）
         let html = '';
-        const allStaff = [...videoStaff, ...graphicStaff];
+        const allStaff = [...videoStaff];
         let currentDate = new Date(start);
         let index = 0;
         
@@ -3360,26 +3113,7 @@
                     }
                 });
                 
-                // 平面组处理
-                graphicStaff.forEach(staff => {
-                    if (dutyStaffs.includes(staff)) {
-                        // 平面组用特殊标记
-                        if (!GRAPHIC_CYCLE[dayIndex]) GRAPHIC_CYCLE[dayIndex] = { zhong: "休", zheng: "休", overtimeNote: "" };
-                        if (staff === "钟豪昌") {
-                            GRAPHIC_CYCLE[dayIndex].zhong = "值班";
-                        } else {
-                            GRAPHIC_CYCLE[dayIndex].zheng = "值班";
-                        }
-                    } else {
-                        // 非值班人员设为休息
-                        if (!GRAPHIC_CYCLE[dayIndex]) GRAPHIC_CYCLE[dayIndex] = { zhong: "休", zheng: "休", overtimeNote: "" };
-                        if (staff === "钟豪昌") {
-                            GRAPHIC_CYCLE[dayIndex].zhong = "休";
-                        } else {
-                            GRAPHIC_CYCLE[dayIndex].zheng = "休";
-                        }
-                    }
-                });
+
             }
         });
         
